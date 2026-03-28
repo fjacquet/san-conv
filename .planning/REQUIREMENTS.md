@@ -85,45 +85,43 @@
 
 ## Traceability
 
-*Populated during roadmap creation.*
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PARSE-01 | — | Pending |
-| PARSE-02 | — | Pending |
-| PARSE-03 | — | Pending |
-| PARSE-04 | — | Pending |
-| PARSE-05 | — | Pending |
-| PARSE-06 | — | Pending |
-| PARSE-07 | — | Pending |
-| PARSE-08 | — | Pending |
-| PARSE-09 | — | Pending |
-| CONV-01 | — | Pending |
-| CONV-02 | — | Pending |
-| CONV-03 | — | Pending |
-| CONV-04 | — | Pending |
-| CONV-05 | — | Pending |
-| CONV-06 | — | Pending |
-| SANI-01 | — | Pending |
-| SANI-02 | — | Pending |
-| SANI-03 | — | Pending |
-| OUT-01 | — | Pending |
-| OUT-02 | — | Pending |
-| OUT-03 | — | Pending |
-| OUT-04 | — | Pending |
-| CLI-01 | — | Pending |
-| CLI-02 | — | Pending |
-| CLI-03 | — | Pending |
-| CLI-04 | — | Pending |
-| CLI-05 | — | Pending |
-| CLI-06 | — | Pending |
-| CLI-07 | — | Pending |
+| PARSE-01 | Phase 2 | Pending |
+| PARSE-02 | Phase 2 | Pending |
+| PARSE-03 | Phase 2 | Pending |
+| PARSE-04 | Phase 2 | Pending |
+| PARSE-05 | Phase 2 | Pending |
+| PARSE-06 | Phase 2 | Pending |
+| PARSE-07 | Phase 3 | Pending |
+| PARSE-08 | Phase 3 | Pending |
+| PARSE-09 | Phase 3 | Pending |
+| CONV-01 | Phase 5 | Pending |
+| CONV-02 | Phase 5 | Pending |
+| CONV-03 | Phase 5 | Pending |
+| CONV-04 | Phase 6 | Pending |
+| CONV-05 | Phase 6 | Pending |
+| CONV-06 | Phase 6 | Pending |
+| SANI-01 | Phase 4 | Pending |
+| SANI-02 | Phase 4 | Pending |
+| SANI-03 | Phase 4 | Pending |
+| OUT-01 | Phase 5 | Pending |
+| OUT-02 | Phase 5 | Pending |
+| OUT-03 | Phase 6 | Pending |
+| OUT-04 | Phase 7 | Pending |
+| CLI-01 | Phase 7 | Pending |
+| CLI-02 | Phase 7 | Pending |
+| CLI-03 | Phase 7 | Pending |
+| CLI-04 | Phase 7 | Pending |
+| CLI-05 | Phase 7 | Pending |
+| CLI-06 | Phase 7 | Pending |
+| CLI-07 | Phase 1 | Pending |
 
 **Coverage:**
 - v1 requirements: 29 total
-- Mapped to phases: 0
-- Unmapped: 29 ⚠️ (pending roadmap)
+- Mapped to phases: 29
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-28*
-*Last updated: 2026-03-28 after initial definition*
+*Last updated: 2026-03-28 after roadmap creation*
