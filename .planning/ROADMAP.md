@@ -32,7 +32,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `internal/ir/zoningconfig.go` defines `ZoningConfig`, `Alias`, `Zone`, `ZoneMember`, and `ZoneConfig` structs that compile cleanly
   4. `go test ./...` runs (zero tests pass, zero tests fail — no panics)
   5. golangci-lint and goreleaser configs are present and lint passes on the empty skeleton
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Go module init, IR struct definitions, and empty internal sub-package stubs
+- [ ] 01-02-PLAN.md — Cobra CLI skeleton (both subcommands stubbed), golangci-lint v2 config, goreleaser v2 config
 
 ### Phase 2: MDS Parser
 **Goal**: The MDS parser correctly reads any real NX-OS running-config and produces a fully populated IR struct, covering all alias types, all member types, multi-VSAN, and edge cases
@@ -108,7 +112,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/TBD | Not started | - |
+| 1. Foundation | 0/2 | Not started | - |
 | 2. MDS Parser | 0/TBD | Not started | - |
 | 3. Brocade Parser | 0/TBD | Not started | - |
 | 4. Validator and Sanitizer | 0/TBD | Not started | - |
