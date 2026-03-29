@@ -19,6 +19,7 @@ Given a full MDS running-config file, produce correct, ready-to-apply Brocade FO
 - [x] Convert zone definitions including pWWN/alias members — Validated in Phase 05: brocade-emitter (zonecreate emission)
 - [x] Convert zoneset (MDS) ↔ cfg (Brocade) — Validated in Phase 05: brocade-emitter (cfgcreate emission)
 - [x] Output Brocade FOS CLI commands (ready-to-paste) — Validated in Phase 05: brocade-emitter
+- [x] Output NX-OS CLI commands for brocade2mds direction — Validated in Phase 06: mds-emitter
 
 ### Active
 
@@ -86,4 +87,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-29 — Phase 05 complete: Brocade FOS emitter implemented*
+*Last updated: 2026-03-29 — Phase 06 complete: MDS NX-OS emitter implemented*
