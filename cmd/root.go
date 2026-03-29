@@ -25,6 +25,7 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.SilenceUsage = true // suppress usage on runtime errors (not flag errors)
 	rootCmd.AddCommand(mds2brocadeCmd)
 	rootCmd.AddCommand(brocade2mdsCmd)
 }
