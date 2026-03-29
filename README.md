@@ -1,5 +1,12 @@
 # san-conv
 
+[![CI](https://github.com/fjacquet/san-conv/actions/workflows/ci.yml/badge.svg)](https://github.com/fjacquet/san-conv/actions/workflows/ci.yml)
+[![Release](https://github.com/fjacquet/san-conv/actions/workflows/release.yml/badge.svg)](https://github.com/fjacquet/san-conv/actions/workflows/release.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/fjacquet/san-conv)](https://goreportcard.com/report/github.com/fjacquet/san-conv)
+[![Go Reference](https://pkg.go.dev/badge/github.com/fjacquet/san-conv.svg)](https://pkg.go.dev/github.com/fjacquet/san-conv)
+[![Latest Release](https://img.shields.io/github/v/release/fjacquet/san-conv)](https://github.com/fjacquet/san-conv/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 Convert SAN fabric zoning configurations between Cisco MDS (NX-OS) and Brocade FOS formats.
 
 ## Install
