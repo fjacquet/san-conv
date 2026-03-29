@@ -12,7 +12,7 @@ san-conv is built as a strict compiler pipeline: IR definition first, then parse
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation** - IR struct definitions, project scaffolding, and compilable binary skeleton
+- [x] **Phase 1: Foundation** - IR struct definitions, project scaffolding, and compilable binary skeleton (completed 2026-03-29)
 - [ ] **Phase 2: MDS Parser** - Full NX-OS running-config parsing producing validated IR
 - [ ] **Phase 3: Brocade Parser** - FOS cfgshow and CLI script parsing producing validated IR
 - [ ] **Phase 4: Validator and Sanitizer** - Name sanitization and post-sanitization collision detection
@@ -112,7 +112,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 1/2 | In Progress|  |
+| 1. Foundation | 1/2 | Complete    | 2026-03-29 |
 | 2. MDS Parser | 0/TBD | Not started | - |
 | 3. Brocade Parser | 0/TBD | Not started | - |
 | 4. Validator and Sanitizer | 0/TBD | Not started | - |
