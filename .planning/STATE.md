@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: "Completed 05-brocade-emitter/05-01-PLAN.md — emitter TDD red phase, 10 tests failing with undefined: Emit"
-last_updated: "2026-03-29T12:37:06.666Z"
+status: verifying
+stopped_at: Completed 05-brocade-emitter/05-02-PLAN.md — Brocade FOS emitter TDD green phase, all 10 tests passing
+last_updated: "2026-03-29T14:20:11.502Z"
 last_activity: 2026-03-29
 progress:
   total_phases: 7
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 10
-  completed_plans: 9
+  completed_plans: 10
   percent: 0
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 
 Phase: 05 (brocade-emitter) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-29
 
 Progress: [░░░░░░░░░░] 0%
@@ -61,6 +61,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04-validator-and-sanitizer P01 | 106 | 1 tasks | 1 files |
 | Phase 04-validator-and-sanitizer P02 | 12 | 1 tasks | 2 files |
 | Phase 05-brocade-emitter P01 | 7 | 1 tasks | 1 files |
+| Phase 05-brocade-emitter P02 | 4 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,8 @@ Recent decisions affecting current work:
 - [Phase 05-01]: checkFn signature includes cfg *ir.ZoningConfig parameter to allow asserting on cfg.Warnings after Emit
 - [Phase 05-01]: Test 8 (empty zone) asserts both on output absence AND cfg.Warnings content — validates warn-and-continue behavior in emitter
 - [Phase 05-01]: Test 9 multi-VSAN uses composite map keys 'zoneA@vsan10' with Zone.Name='zoneA' — mirrors MDS parser output format; emitter must use zone.Name not map key
+- [Phase 05-02]: sortedStringKeys uses Go generics type parameters instead of type-specific helpers — cleaner with no lint warnings
+- [Phase 05-02]: Emit() always uses zone.Name field (not map key) in FOS commands — avoids @vsanN composite key leakage into output
 
 ### Pending Todos
 
@@ -104,6 +107,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T12:37:06.662Z
-Stopped at: Completed 05-brocade-emitter/05-01-PLAN.md — emitter TDD red phase, 10 tests failing with undefined: Emit
+Last session: 2026-03-29T14:20:11.499Z
+Stopped at: Completed 05-brocade-emitter/05-02-PLAN.md — Brocade FOS emitter TDD green phase, all 10 tests passing
 Resume file: None
