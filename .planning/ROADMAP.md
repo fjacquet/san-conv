@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation** - IR struct definitions, project scaffolding, and compilable binary skeleton (completed 2026-03-29)
 - [x] **Phase 2: MDS Parser** - Full NX-OS running-config parsing producing validated IR (completed 2026-03-29)
 - [x] **Phase 3: Brocade Parser** - FOS cfgshow and CLI script parsing producing validated IR (completed 2026-03-29)
-- [ ] **Phase 4: Validator and Sanitizer** - Name sanitization and post-sanitization collision detection
+- [x] **Phase 4: Validator and Sanitizer** - Name sanitization and post-sanitization collision detection (completed 2026-03-29)
 - [ ] **Phase 5: Brocade Emitter** - FOS CLI command generation from IR (primary output path)
 - [ ] **Phase 6: MDS Emitter** - NX-OS CLI command generation from IR (reverse direction)
 - [ ] **Phase 7: CLI Wiring and Integration** - Complete pipeline wiring, flags, summary output, and release binary
@@ -81,7 +81,7 @@ Plans:
 
 Plans:
 - [x] 04-01-PLAN.md — Table-driven sanitizer tests covering truncation, char replacement, collision detection, and cross-reference updates (TDD red phase)
-- [ ] 04-02-PLAN.md — Sanitize() implementation making all tests pass: char replacement, truncation, collision disambiguation, map key rebuild (TDD green phase)
+- [x] 04-02-PLAN.md — Sanitize() implementation making all tests pass: char replacement, truncation, collision disambiguation, map key rebuild (TDD green phase)
 
 ### Phase 5: Brocade Emitter
 **Goal**: The Brocade emitter produces correct, ready-to-apply FOS CLI commands from a validated IR, including mandatory security and persistence preamble/postamble
@@ -127,7 +127,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 1. Foundation | 1/2 | Complete    | 2026-03-29 |
 | 2. MDS Parser | 2/2 | Complete    | 2026-03-29 |
 | 3. Brocade Parser | 1/2 | Complete    | 2026-03-29 |
-| 4. Validator and Sanitizer | 1/2 | In Progress|  |
+| 4. Validator and Sanitizer | 2/2 | Complete   | 2026-03-29 |
 | 5. Brocade Emitter | 0/TBD | Not started | - |
 | 6. MDS Emitter | 0/TBD | Not started | - |
 | 7. CLI Wiring and Integration | 0/TBD | Not started | - |

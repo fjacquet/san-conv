@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 04-validator-and-sanitizer/04-01-PLAN.md — sanitizer TDD red phase
-last_updated: "2026-03-29T10:49:03.150Z"
+status: verifying
+stopped_at: Completed 04-validator-and-sanitizer/04-02-PLAN.md — sanitizer green phase, all 15 tests passing
+last_updated: "2026-03-29T12:00:54.178Z"
 last_activity: 2026-03-29
 progress:
   total_phases: 7
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 8
-  completed_plans: 7
+  completed_plans: 8
   percent: 0
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 
 Phase: 04 (validator-and-sanitizer) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-29
 
 Progress: [░░░░░░░░░░] 0%
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03-brocade-parser P01 | 4 | 2 tasks | 6 files |
 | Phase 03-brocade-parser P02 | 4 | 2 tasks | 1 files |
 | Phase 04-validator-and-sanitizer P01 | 106 | 1 tasks | 1 files |
+| Phase 04-validator-and-sanitizer P02 | 12 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,8 @@ Recent decisions affecting current work:
 - [Phase 03-brocade-parser]: cfgshowState typed int avoids fragile iota duplication between parseCfgshowFormat and appendMembers helper
 - [Phase 03-brocade-parser]: appendMembers receives cfgshowState parameter — state machine helpers share typed constants without global state
 - [Phase 04-validator-and-sanitizer]: Sanitize() function signature: func Sanitize(cfg *ir.ZoningConfig, fosVersion string) *ir.ZoningConfig — returns mutated IR with rebuilt maps and appended warnings
+- [Phase 04-validator-and-sanitizer]: Sanitizer buildRenameMap pipeline: char-replace then truncate then collision; warnings appended to cfg in each phase; applied to cross-references before map key rebuild
+- [Phase 04-validator-and-sanitizer]: Collision disambiguation uses sort.Strings for deterministic ordering; applyDisambiguatingSuffix truncates base before appending suffix to guarantee <=63 chars
 
 ### Pending Todos
 
@@ -97,6 +100,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T10:49:03.147Z
-Stopped at: Completed 04-validator-and-sanitizer/04-01-PLAN.md — sanitizer TDD red phase
+Last session: 2026-03-29T12:00:54.175Z
+Stopped at: Completed 04-validator-and-sanitizer/04-02-PLAN.md — sanitizer green phase, all 15 tests passing
 Resume file: None
