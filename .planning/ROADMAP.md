@@ -144,12 +144,13 @@ Plans:
   4. `san-conv myconfig.txt --direction brocade2mds` produces NX-OS commands for a valid Brocade input file
   5. When a fatal IO error occurs the tool exits non-zero; when only warnings occur the tool exits 0
   6. `go install` or a downloaded binary runs on Linux, macOS, and Windows without installing Go or any runtime
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
 
 - [x] 07-01-PLAN.md — Integration tests for converter.Run() covering all CLI requirements (TDD red phase)
-- [ ] 07-02-PLAN.md — converter.go pipeline orchestrator + cobra command wiring (TDD green phase)
+- [x] 07-02-PLAN.md — converter.go pipeline orchestrator + cobra command wiring (TDD green phase)
+- [ ] 07-03-PLAN.md — Gap closure: root-level flat invocation (SC#1) and --direction flag (CLI-02 / SC#4)
 
 ## Progress
 
@@ -164,4 +165,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 4. Validator and Sanitizer | 2/2 | Complete   | 2026-03-29 |
 | 5. Brocade Emitter | 2/2 | Complete   | 2026-03-29 |
 | 6. MDS Emitter | 2/2 | Complete   | 2026-03-29 |
-| 7. CLI Wiring and Integration | 1/2 | In Progress|  |
+| 7. CLI Wiring and Integration | 2/3 | In Progress|  |
