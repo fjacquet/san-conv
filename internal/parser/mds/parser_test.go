@@ -23,7 +23,8 @@ func TestParse(t *testing.T) {
 			fixture: "basic.cfg",
 			checkFn: func(t *testing.T, cfg *ir.ZoningConfig) {
 				t.Helper()
-				require.Len(t, cfg.Aliases, 2, "want 2 aliases (device-alias block + fcalias)")
+				// 2 device-aliases (Server-HBA-A, Storage-Port-1) + 1 fcalias (Server-port-A) = 3
+				require.Len(t, cfg.Aliases, 3, "want 3 aliases (2 device-alias + 1 fcalias)")
 				require.Len(t, cfg.Zones, 1, "want 1 zone")
 				require.Len(t, cfg.ZoneConfigs, 1, "want 1 zoneset")
 				require.Empty(t, cfg.Warnings, "want 0 warnings")
