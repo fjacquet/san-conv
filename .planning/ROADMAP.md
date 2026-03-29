@@ -48,7 +48,11 @@ Plans:
   3. Given a zone with a smart-zoning keyword (`init`/`target`/`both`), the member pWWN is kept and the keyword is stripped with a named warning
   4. Given a zone with an unsupported member type (interface, fcid, ip-address), a named warning is emitted and the member is skipped — the zone still appears in IR
   5. Given an NX-OS 8.5+ config with enhanced device-alias mode, zone members that reference device-alias names are correctly resolved to pWWNs via two-pass parsing
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Six NX-OS test fixture files (TDD prerequisite: basic, enhanced_mode, multi_vsan, smart_zoning, unsupported, edge_cases)
+- [ ] 02-02-PLAN.md — Two-pass MDS parser state machine (parser.go) and table-driven tests (parser_test.go)
 
 ### Phase 3: Brocade Parser
 **Goal**: The Brocade parser correctly reads both cfgshow output format and FOS CLI script format, auto-detecting the format, and produces a fully populated IR struct
@@ -113,7 +117,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 1/2 | Complete    | 2026-03-29 |
-| 2. MDS Parser | 0/TBD | Not started | - |
+| 2. MDS Parser | 0/2 | Not started | - |
 | 3. Brocade Parser | 0/TBD | Not started | - |
 | 4. Validator and Sanitizer | 0/TBD | Not started | - |
 | 5. Brocade Emitter | 0/TBD | Not started | - |
