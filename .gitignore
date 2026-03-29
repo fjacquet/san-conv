@@ -1,0 +1,11 @@
+# Build artifacts
+san-conv
+san-conv.exe
+dist/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
