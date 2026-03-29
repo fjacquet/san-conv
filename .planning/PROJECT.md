@@ -12,7 +12,9 @@ Given a full MDS running-config file, produce correct, ready-to-apply Brocade FO
 
 ### Validated
 
-(None yet — ship to validate)
+- [x] Parse full Cisco MDS running-config files to extract zoning objects — Validated in Phase 02: mds-parser
+- [x] Parse Brocade FOS config files to extract zoning objects — Validated in Phase 03: brocade-parser
+- [x] Warn on unconvertible/ambiguous constructs and continue (best-effort) — Validated in Phase 04: validator-and-sanitizer (name sanitization warnings)
 
 ### Active
 
@@ -78,4 +80,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-28 after initialization*
+*Last updated: 2026-03-29 — Phase 04 complete: FOS name sanitizer implemented*
