@@ -107,7 +107,12 @@ Plans:
   2. Every generated shell script starts with `defzone --noaccess` and ends with `cfgsave` with no option to omit either
   3. `cfgenable` appears in the generated script as a commented-out line with an explanatory comment, never as an executable statement
   4. Given a zone whose member is referenced by alias name, the emitted `zonecreate` command lists the alias name (not the raw pWWN) correctly
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+
+- [ ] 05-01-PLAN.md — Table-driven emitter tests covering alicreate, zonecreate, cfgcreate, command ordering, script mode preamble/postamble (TDD red phase)
+- [ ] 05-02-PLAN.md — Emit() implementation making all tests pass: FOS CLI command generation from IR (TDD green phase)
 
 ### Phase 6: MDS Emitter
 
@@ -147,6 +152,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 2. MDS Parser | 2/2 | Complete    | 2026-03-29 |
 | 3. Brocade Parser | 1/2 | Complete    | 2026-03-29 |
 | 4. Validator and Sanitizer | 2/2 | Complete   | 2026-03-29 |
-| 5. Brocade Emitter | 0/TBD | Not started | - |
+| 5. Brocade Emitter | 0/2 | Not started | - |
 | 6. MDS Emitter | 0/TBD | Not started | - |
 | 7. CLI Wiring and Integration | 0/TBD | Not started | - |
