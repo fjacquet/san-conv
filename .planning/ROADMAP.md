@@ -164,4 +164,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 4. Validator and Sanitizer | 2/2 | Complete   | 2026-03-29 |
 | 5. Brocade Emitter | 2/2 | Complete   | 2026-03-29 |
 | 6. MDS Emitter | 2/2 | Complete   | 2026-03-29 |
-| 7. CLI Wiring and Integration | 0/2 | Not started | - |
+| 7. CLI Wiring and Integration | 0/2 | Planned    |  |

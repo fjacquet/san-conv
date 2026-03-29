@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 06-mds-emitter/06-02-PLAN.md — MDS NX-OS emitter TDD green phase, all 10 tests passing
-last_updated: "2026-03-29T15:28:14.980Z"
+stopped_at: Completed 07-cli-wiring-and-integration/07-01-PLAN.md — TDD red phase, 10 failing integration tests for converter.Run()
+last_updated: "2026-03-29T15:44:39.544Z"
 last_activity: 2026-03-29
 progress:
   total_phases: 7
   completed_phases: 6
-  total_plans: 12
+  total_plans: 14
   completed_plans: 12
   percent: 0
 ---
@@ -63,6 +63,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 05-brocade-emitter P01 | 7 | 1 tasks | 1 files |
 | Phase 05-brocade-emitter P02 | 4 | 1 tasks | 1 files |
 | Phase 06-mds-emitter P02 | 2 | 1 tasks | 1 files |
+| Phase 07-cli-wiring-and-integration P01 | 2 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -98,6 +99,8 @@ Recent decisions affecting current work:
 - [Phase 06-mds-emitter]: zoneset activate name X vsan N is a real NX-OS config command — never commented (unlike Brocade cfgenable)
 - [Phase 06-mds-emitter]: VSAN 0 Brocade sentinel resolves to VSAN 1; MDS non-zero VSANs pass through unchanged — supports both conversion directions
 - [Phase 06-mds-emitter]: MDS Emit() has no scriptMode parameter — NX-OS paste-config is a single format
+- [Phase 07-cli-wiring-and-integration]: Test 6 (hyphen preservation) uses inline fixture via os.WriteFile to t.TempDir() — no existing brocade fixture has hyphenated alias names
+- [Phase 07-cli-wiring-and-integration]: converter_test.go uses package converter (not _test suffix) for white-box access when converter.go defines exported symbols
 
 ### Pending Todos
 
@@ -111,6 +114,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T15:23:39.702Z
-Stopped at: Completed 06-mds-emitter/06-02-PLAN.md — MDS NX-OS emitter TDD green phase, all 10 tests passing
+Last session: 2026-03-29T15:44:39.541Z
+Stopped at: Completed 07-cli-wiring-and-integration/07-01-PLAN.md — TDD red phase, 10 failing integration tests for converter.Run()
 Resume file: None

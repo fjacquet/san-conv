@@ -40,16 +40,16 @@
 - [x] **OUT-01**: Tool writes Brocade FOS CLI commands to stdout (or `--output` file) in correct application order: alicreate → zonecreate → cfgcreate
 - [x] **OUT-02**: Tool generates an executable shell script that includes `defzone --noaccess` preamble, all zone commands, `cfgenable <cfg-name>`, and `cfgsave` postamble
 - [x] **OUT-03**: Tool writes MDS NX-OS config commands for the Brocade→MDS direction (device-alias, zone, zoneset, zoneset activate)
-- [ ] **OUT-04**: Tool prints a conversion summary to stderr listing: objects converted, objects skipped, warnings issued
+- [x] **OUT-04**: Tool prints a conversion summary to stderr listing: objects converted, objects skipped, warnings issued
 
 ### CLI Interface
 
-- [ ] **CLI-01**: Tool accepts the input config file path as a positional argument
-- [ ] **CLI-02**: Tool provides `--direction` flag with values `mds2brocade` (default) and `brocade2mds`
-- [ ] **CLI-03**: Tool provides `--output` flag to write primary output to a file instead of stdout
-- [ ] **CLI-04**: Tool provides `--script` flag to also write a shell script file alongside the primary output
-- [ ] **CLI-05**: Tool provides `--fos-version` flag (values: `pre-8.1`, `8.1+`) defaulting to `pre-8.1` (conservative charset)
-- [ ] **CLI-06**: Tool exits with code 0 on success (warnings allowed), non-zero only on fatal parse/IO errors
+- [x] **CLI-01**: Tool accepts the input config file path as a positional argument
+- [x] **CLI-02**: Tool provides `--direction` flag with values `mds2brocade` (default) and `brocade2mds`
+- [x] **CLI-03**: Tool provides `--output` flag to write primary output to a file instead of stdout
+- [x] **CLI-04**: Tool provides `--script` flag to also write a shell script file alongside the primary output
+- [x] **CLI-05**: Tool provides `--fos-version` flag (values: `pre-8.1`, `8.1+`) defaulting to `pre-8.1` (conservative charset)
+- [x] **CLI-06**: Tool exits with code 0 on success (warnings allowed), non-zero only on fatal parse/IO errors
 - [x] **CLI-07**: Single distributable Go binary with no runtime dependencies (go install or pre-built release)
 
 ## v2 Requirements
@@ -108,13 +108,13 @@
 | OUT-01 | Phase 5 | Complete |
 | OUT-02 | Phase 5 | Complete |
 | OUT-03 | Phase 6 | Complete |
-| OUT-04 | Phase 7 | Pending |
-| CLI-01 | Phase 7 | Pending |
-| CLI-02 | Phase 7 | Pending |
-| CLI-03 | Phase 7 | Pending |
-| CLI-04 | Phase 7 | Pending |
-| CLI-05 | Phase 7 | Pending |
-| CLI-06 | Phase 7 | Pending |
+| OUT-04 | Phase 7 | Complete |
+| CLI-01 | Phase 7 | Complete |
+| CLI-02 | Phase 7 | Complete |
+| CLI-03 | Phase 7 | Complete |
+| CLI-04 | Phase 7 | Complete |
+| CLI-05 | Phase 7 | Complete |
+| CLI-06 | Phase 7 | Complete |
 | CLI-07 | Phase 1 | Complete |
 
 **Coverage:**
