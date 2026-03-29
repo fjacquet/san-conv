@@ -80,7 +80,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Table-driven sanitizer tests covering truncation, char replacement, collision detection, and cross-reference updates (TDD red phase)
+- [x] 04-01-PLAN.md — Table-driven sanitizer tests covering truncation, char replacement, collision detection, and cross-reference updates (TDD red phase)
 - [ ] 04-02-PLAN.md — Sanitize() implementation making all tests pass: char replacement, truncation, collision disambiguation, map key rebuild (TDD green phase)
 
 ### Phase 5: Brocade Emitter
@@ -127,7 +127,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 1. Foundation | 1/2 | Complete    | 2026-03-29 |
 | 2. MDS Parser | 2/2 | Complete    | 2026-03-29 |
 | 3. Brocade Parser | 1/2 | Complete    | 2026-03-29 |
-| 4. Validator and Sanitizer | 0/2 | Planned | - |
+| 4. Validator and Sanitizer | 1/2 | In Progress|  |
 | 5. Brocade Emitter | 0/TBD | Not started | - |
 | 6. MDS Emitter | 0/TBD | Not started | - |
 | 7. CLI Wiring and Integration | 0/TBD | Not started | - |

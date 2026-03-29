@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 03-brocade-parser/03-02-PLAN.md — Brocade FOS parser implementation
-last_updated: "2026-03-29T10:13:50.640Z"
+status: executing
+stopped_at: Completed 04-validator-and-sanitizer/04-01-PLAN.md — sanitizer TDD red phase
+last_updated: "2026-03-29T10:49:03.150Z"
 last_activity: 2026-03-29
 progress:
   total_phases: 7
   completed_phases: 3
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 8
+  completed_plans: 7
   percent: 0
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** Given a full MDS running-config file, produce correct, ready-to-apply Brocade FOS CLI commands and a runnable script — with warnings for anything that couldn't be converted cleanly.
-**Current focus:** Phase 03 — Brocade Parser
+**Current focus:** Phase 04 — validator-and-sanitizer
 
 ## Current Position
 
-Phase: 4
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 04 (validator-and-sanitizer) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-03-29
 
 Progress: [░░░░░░░░░░] 0%
@@ -58,6 +58,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02-mds-parser P02 | 4 | 2 tasks | 2 files |
 | Phase 03-brocade-parser P01 | 4 | 2 tasks | 6 files |
 | Phase 03-brocade-parser P02 | 4 | 2 tasks | 1 files |
+| Phase 04-validator-and-sanitizer P01 | 106 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,7 @@ Recent decisions affecting current work:
 - [Phase 03-brocade-parser]: TDD red phase: parser_test.go references Parse() before implementation; go vet confirms undefined: Parse as expected
 - [Phase 03-brocade-parser]: cfgshowState typed int avoids fragile iota duplication between parseCfgshowFormat and appendMembers helper
 - [Phase 03-brocade-parser]: appendMembers receives cfgshowState parameter — state machine helpers share typed constants without global state
+- [Phase 04-validator-and-sanitizer]: Sanitize() function signature: func Sanitize(cfg *ir.ZoningConfig, fosVersion string) *ir.ZoningConfig — returns mutated IR with rebuilt maps and appended warnings
 
 ### Pending Todos
 
@@ -95,6 +97,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T08:27:50.159Z
-Stopped at: Completed 03-brocade-parser/03-02-PLAN.md — Brocade FOS parser implementation
+Last session: 2026-03-29T10:49:03.147Z
+Stopped at: Completed 04-validator-and-sanitizer/04-01-PLAN.md — sanitizer TDD red phase
 Resume file: None

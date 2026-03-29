@@ -31,9 +31,9 @@
 
 ### Name Sanitization
 
-- [ ] **SANI-01**: Tool enforces FOS 63-character name limit and truncates names that exceed it, emitting a warning with old and new names
-- [ ] **SANI-02**: Tool replaces characters invalid in conservative FOS naming (only `[A-Za-z0-9_$^-]` allowed in FOS 8.1+; `[A-Za-z0-9_]` in default mode) and warns on each replacement
-- [ ] **SANI-03**: Tool detects when two or more names become identical after sanitization and emits a collision warning with all affected names
+- [x] **SANI-01**: Tool enforces FOS 63-character name limit and truncates names that exceed it, emitting a warning with old and new names
+- [x] **SANI-02**: Tool replaces characters invalid in conservative FOS naming (only `[A-Za-z0-9_$^-]` allowed in FOS 8.1+; `[A-Za-z0-9_]` in default mode) and warns on each replacement
+- [x] **SANI-03**: Tool detects when two or more names become identical after sanitization and emits a collision warning with all affected names
 
 ### Output
 
@@ -102,9 +102,9 @@
 | CONV-04 | Phase 6 | Pending |
 | CONV-05 | Phase 6 | Pending |
 | CONV-06 | Phase 6 | Pending |
-| SANI-01 | Phase 4 | Pending |
-| SANI-02 | Phase 4 | Pending |
-| SANI-03 | Phase 4 | Pending |
+| SANI-01 | Phase 4 | Complete |
+| SANI-02 | Phase 4 | Complete |
+| SANI-03 | Phase 4 | Complete |
 | OUT-01 | Phase 5 | Pending |
 | OUT-02 | Phase 5 | Pending |
 | OUT-03 | Phase 6 | Pending |
