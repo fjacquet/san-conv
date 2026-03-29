@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 01-foundation/01-02-PLAN.md — CLI skeleton and dev tooling complete (golangci-lint v2, goreleaser v2)
-last_updated: "2026-03-29T05:15:56.393Z"
+status: executing
+stopped_at: Completed 02-mds-parser/02-01-PLAN.md — NX-OS fixture files for MDS parser test suite
+last_updated: "2026-03-29T06:19:25.105Z"
 last_activity: 2026-03-29
 progress:
   total_phases: 7
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 4
+  completed_plans: 3
   percent: 0
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** Given a full MDS running-config file, produce correct, ready-to-apply Brocade FOS CLI commands and a runnable script — with warnings for anything that couldn't be converted cleanly.
-**Current focus:** Phase 1 — Foundation
+**Current focus:** Phase 2 — MDS Parser
 
 ## Current Position
 
-Phase: 2
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 2 (MDS Parser) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-03-29
 
 Progress: [░░░░░░░░░░] 0%
@@ -54,6 +54,7 @@ Progress: [░░░░░░░░░░] 0%
 *Updated after each plan completion*
 | Phase 01-foundation P01 | 8 | 2 tasks | 15 files |
 | Phase 01-foundation P02 | 5 | 2 tasks | 6 files |
+| Phase 02-mds-parser P01 | 8 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -70,6 +71,9 @@ Recent decisions affecting current work:
 - [Phase 01-foundation]: Use RunE (not Run) on all Cobra commands so stubs return non-zero exit code and don't silently succeed
 - [Phase 01-foundation]: golangci-lint v2: gofmt goes in formatters.enable section, not linters.enable
 - [Phase 01-foundation]: goreleaser v2: use archives.formats list syntax, snapshot.version_template, requires git remote for check validation
+- [Phase 02-mds-parser]: unsupported.cfg includes device-alias block so parser exercises both supported and unsupported members in the same zone
+- [Phase 02-mds-parser]: smart_zoning.cfg has no device-alias block — exercises raw pWWN parsing with smart-zoning keywords and no alias resolution
+- [Phase 02-mds-parser]: edge_cases.cfg OrphanZone intentionally absent from all zoneset member lists to exercise orphan zone detection
 
 ### Pending Todos
 
@@ -83,6 +87,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T05:10:08.935Z
-Stopped at: Completed 01-foundation/01-02-PLAN.md — CLI skeleton and dev tooling complete (golangci-lint v2, goreleaser v2)
+Last session: 2026-03-29T06:19:25.102Z
+Stopped at: Completed 02-mds-parser/02-01-PLAN.md — NX-OS fixture files for MDS parser test suite
 Resume file: None

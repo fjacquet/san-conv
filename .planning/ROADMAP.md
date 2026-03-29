@@ -51,7 +51,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Six NX-OS test fixture files (TDD prerequisite: basic, enhanced_mode, multi_vsan, smart_zoning, unsupported, edge_cases)
+- [x] 02-01-PLAN.md — Six NX-OS test fixture files (TDD prerequisite: basic, enhanced_mode, multi_vsan, smart_zoning, unsupported, edge_cases)
 - [ ] 02-02-PLAN.md — Two-pass MDS parser state machine (parser.go) and table-driven tests (parser_test.go)
 
 ### Phase 3: Brocade Parser
@@ -117,7 +117,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 1/2 | Complete    | 2026-03-29 |
-| 2. MDS Parser | 0/2 | Not started | - |
+| 2. MDS Parser | 1/2 | In Progress|  |
 | 3. Brocade Parser | 0/TBD | Not started | - |
 | 4. Validator and Sanitizer | 0/TBD | Not started | - |
 | 5. Brocade Emitter | 0/TBD | Not started | - |

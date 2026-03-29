@@ -7,12 +7,12 @@
 
 ### Parsing — MDS (NX-OS)
 
-- [ ] **PARSE-01**: Tool parses `device-alias database` section to extract fabric-wide alias → pWWN mappings
-- [ ] **PARSE-02**: Tool parses `fcalias name X vsan Y` definitions to extract per-VSAN alias → pWWN mappings
-- [ ] **PARSE-03**: Tool parses `zone name X vsan Y` blocks including `member device-alias`, `member fcalias`, and `member pwwn` entries
-- [ ] **PARSE-04**: Tool parses `zoneset name X vsan Y` blocks and their zone membership
-- [ ] **PARSE-05**: Tool detects unsupported member types (interface, fcid, ip-address, symbolic-nodename) and emits a named warning per occurrence, then skips the member
-- [ ] **PARSE-06**: Tool handles multi-VSAN configs and converts all VSANs into merged Brocade fabric output
+- [x] **PARSE-01**: Tool parses `device-alias database` section to extract fabric-wide alias → pWWN mappings
+- [x] **PARSE-02**: Tool parses `fcalias name X vsan Y` definitions to extract per-VSAN alias → pWWN mappings
+- [x] **PARSE-03**: Tool parses `zone name X vsan Y` blocks including `member device-alias`, `member fcalias`, and `member pwwn` entries
+- [x] **PARSE-04**: Tool parses `zoneset name X vsan Y` blocks and their zone membership
+- [x] **PARSE-05**: Tool detects unsupported member types (interface, fcid, ip-address, symbolic-nodename) and emits a named warning per occurrence, then skips the member
+- [x] **PARSE-06**: Tool handles multi-VSAN configs and converts all VSANs into merged Brocade fabric output
 
 ### Parsing — Brocade (FOS)
 
@@ -87,12 +87,12 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PARSE-01 | Phase 2 | Pending |
-| PARSE-02 | Phase 2 | Pending |
-| PARSE-03 | Phase 2 | Pending |
-| PARSE-04 | Phase 2 | Pending |
-| PARSE-05 | Phase 2 | Pending |
-| PARSE-06 | Phase 2 | Pending |
+| PARSE-01 | Phase 2 | Complete |
+| PARSE-02 | Phase 2 | Complete |
+| PARSE-03 | Phase 2 | Complete |
+| PARSE-04 | Phase 2 | Complete |
+| PARSE-05 | Phase 2 | Complete |
+| PARSE-06 | Phase 2 | Complete |
 | PARSE-07 | Phase 3 | Pending |
 | PARSE-08 | Phase 3 | Pending |
 | PARSE-09 | Phase 3 | Pending |
