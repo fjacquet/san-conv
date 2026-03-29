@@ -111,7 +111,7 @@ Plans:
 
 Plans:
 
-- [ ] 05-01-PLAN.md — Table-driven emitter tests covering alicreate, zonecreate, cfgcreate, command ordering, script mode preamble/postamble (TDD red phase)
+- [x] 05-01-PLAN.md — Table-driven emitter tests covering alicreate, zonecreate, cfgcreate, command ordering, script mode preamble/postamble (TDD red phase)
 - [ ] 05-02-PLAN.md — Emit() implementation making all tests pass: FOS CLI command generation from IR (TDD green phase)
 
 ### Phase 6: MDS Emitter
@@ -152,6 +152,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 2. MDS Parser | 2/2 | Complete    | 2026-03-29 |
 | 3. Brocade Parser | 1/2 | Complete    | 2026-03-29 |
 | 4. Validator and Sanitizer | 2/2 | Complete   | 2026-03-29 |
-| 5. Brocade Emitter | 0/2 | Not started | - |
+| 5. Brocade Emitter | 1/2 | In Progress|  |
 | 6. MDS Emitter | 0/TBD | Not started | - |
 | 7. CLI Wiring and Integration | 0/TBD | Not started | - |
