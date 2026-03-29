@@ -15,6 +15,10 @@ Given a full MDS running-config file, produce correct, ready-to-apply Brocade FO
 - [x] Parse full Cisco MDS running-config files to extract zoning objects — Validated in Phase 02: mds-parser
 - [x] Parse Brocade FOS config files to extract zoning objects — Validated in Phase 03: brocade-parser
 - [x] Warn on unconvertible/ambiguous constructs and continue (best-effort) — Validated in Phase 04: validator-and-sanitizer (name sanitization warnings)
+- [x] Convert device-alias (MDS) ↔ alias (Brocade) — Validated in Phase 05: brocade-emitter (alicreate emission)
+- [x] Convert zone definitions including pWWN/alias members — Validated in Phase 05: brocade-emitter (zonecreate emission)
+- [x] Convert zoneset (MDS) ↔ cfg (Brocade) — Validated in Phase 05: brocade-emitter (cfgcreate emission)
+- [x] Output Brocade FOS CLI commands (ready-to-paste) — Validated in Phase 05: brocade-emitter
 
 ### Active
 
@@ -82,4 +86,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-29 — Phase 04 complete: FOS name sanitizer implemented*
+*Last updated: 2026-03-29 — Phase 05 complete: Brocade FOS emitter implemented*
