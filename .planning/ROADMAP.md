@@ -66,7 +66,7 @@ Plans:
 
 Plans:
 - [x] 03-01-PLAN.md — Five Brocade test fixtures and parser_test.go (TDD red phase)
-- [ ] 03-02-PLAN.md — Brocade parser implementation: cfgshow + CLI + auto-detection (TDD green phase)
+- [x] 03-02-PLAN.md — Brocade parser implementation: cfgshow + CLI + auto-detection (TDD green phase)
 
 ### Phase 4: Validator and Sanitizer
 **Goal**: Every name in the IR that would produce invalid or silently broken Brocade output is caught, sanitized, and warned about before any emitter runs
