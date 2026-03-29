@@ -148,7 +148,7 @@ Plans:
 
 Plans:
 
-- [ ] 07-01-PLAN.md — Integration tests for converter.Run() covering all CLI requirements (TDD red phase)
+- [x] 07-01-PLAN.md — Integration tests for converter.Run() covering all CLI requirements (TDD red phase)
 - [ ] 07-02-PLAN.md — converter.go pipeline orchestrator + cobra command wiring (TDD green phase)
 
 ## Progress
@@ -164,4 +164,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 4. Validator and Sanitizer | 2/2 | Complete   | 2026-03-29 |
 | 5. Brocade Emitter | 2/2 | Complete   | 2026-03-29 |
 | 6. MDS Emitter | 2/2 | Complete   | 2026-03-29 |
-| 7. CLI Wiring and Integration | 0/2 | Planned    |  |
+| 7. CLI Wiring and Integration | 1/2 | In Progress|  |
