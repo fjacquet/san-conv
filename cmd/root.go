@@ -48,5 +48,5 @@ func init() {
 	rootCmd.Flags().StringP("direction", "d", "mds2brocade", "conversion direction: mds2brocade or brocade2mds")
 	rootCmd.Flags().String("output", "", "write primary output to file (default: stdout)")
 	rootCmd.Flags().String("script", "", "also write executable shell script to file (mds2brocade only)")
-	rootCmd.Flags().String("fos-version", "pre-8.1", "target FOS naming rules (pre-8.1 or 8.1+)")
+	rootCmd.Flags().String("fos-version", "8.1+", "target FOS naming rules (pre-8.1 or 8.1+)")
 }

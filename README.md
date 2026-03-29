@@ -50,7 +50,7 @@ san-conv brocade2mds cfgshow.txt
 | `--direction`, `-d` | `mds2brocade` | Conversion direction: `mds2brocade` or `brocade2mds` |
 | `--output` | stdout | Write primary output to file |
 | `--script` | (disabled) | Also write an executable shell script (mds2brocade only) |
-| `--fos-version` | `pre-8.1` | FOS naming rules: `pre-8.1` (conservative) or `8.1+` (extended) |
+| `--fos-version` | `8.1+` | FOS naming rules: `8.1+` (default, preserves hyphens) or `pre-8.1` (legacy switches only) |
 
 ## Input formats
 
