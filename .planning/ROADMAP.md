@@ -36,7 +36,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 - [x] 01-01-PLAN.md — Go module init, IR struct definitions, and empty internal sub-package stubs
-- [ ] 01-02-PLAN.md — Cobra CLI skeleton (both subcommands stubbed), golangci-lint v2 config, goreleaser v2 config
+- [x] 01-02-PLAN.md — Cobra CLI skeleton (both subcommands stubbed), golangci-lint v2 config, goreleaser v2 config
 
 ### Phase 2: MDS Parser
 **Goal**: The MDS parser correctly reads any real NX-OS running-config and produces a fully populated IR struct, covering all alias types, all member types, multi-VSAN, and edge cases
