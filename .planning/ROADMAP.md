@@ -65,7 +65,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Five Brocade test fixtures and parser_test.go (TDD red phase)
+- [x] 03-01-PLAN.md — Five Brocade test fixtures and parser_test.go (TDD red phase)
 - [ ] 03-02-PLAN.md — Brocade parser implementation: cfgshow + CLI + auto-detection (TDD green phase)
 
 ### Phase 4: Validator and Sanitizer
@@ -122,7 +122,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 |-------|----------------|--------|-----------|
 | 1. Foundation | 1/2 | Complete    | 2026-03-29 |
 | 2. MDS Parser | 2/2 | Complete    | 2026-03-29 |
-| 3. Brocade Parser | 0/2 | Not started | - |
+| 3. Brocade Parser | 1/2 | In Progress|  |
 | 4. Validator and Sanitizer | 0/TBD | Not started | - |
 | 5. Brocade Emitter | 0/TBD | Not started | - |
 | 6. MDS Emitter | 0/TBD | Not started | - |

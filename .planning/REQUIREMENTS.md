@@ -16,9 +16,9 @@
 
 ### Parsing — Brocade (FOS)
 
-- [ ] **PARSE-07**: Tool parses Brocade `cfgshow` output format (`Defined configuration:` section with `alias:`, `zone:`, `cfg:` lines including backslash-continuation)
-- [ ] **PARSE-08**: Tool parses Brocade FOS CLI script format (`alicreate`, `zonecreate`, `cfgcreate` commands)
-- [ ] **PARSE-09**: Tool auto-detects whether Brocade input is cfgshow output or CLI script format
+- [x] **PARSE-07**: Tool parses Brocade `cfgshow` output format (`Defined configuration:` section with `alias:`, `zone:`, `cfg:` lines including backslash-continuation)
+- [x] **PARSE-08**: Tool parses Brocade FOS CLI script format (`alicreate`, `zonecreate`, `cfgcreate` commands)
+- [x] **PARSE-09**: Tool auto-detects whether Brocade input is cfgshow output or CLI script format
 
 ### Conversion
 
@@ -93,9 +93,9 @@
 | PARSE-04 | Phase 2 | Complete |
 | PARSE-05 | Phase 2 | Complete |
 | PARSE-06 | Phase 2 | Complete |
-| PARSE-07 | Phase 3 | Pending |
-| PARSE-08 | Phase 3 | Pending |
-| PARSE-09 | Phase 3 | Pending |
+| PARSE-07 | Phase 3 | Complete |
+| PARSE-08 | Phase 3 | Complete |
+| PARSE-09 | Phase 3 | Complete |
 | CONV-01 | Phase 5 | Pending |
 | CONV-02 | Phase 5 | Pending |
 | CONV-03 | Phase 5 | Pending |
