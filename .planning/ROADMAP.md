@@ -13,7 +13,7 @@ san-conv is built as a strict compiler pipeline: IR definition first, then parse
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - IR struct definitions, project scaffolding, and compilable binary skeleton (completed 2026-03-29)
-- [ ] **Phase 2: MDS Parser** - Full NX-OS running-config parsing producing validated IR
+- [x] **Phase 2: MDS Parser** - Full NX-OS running-config parsing producing validated IR (completed 2026-03-29)
 - [ ] **Phase 3: Brocade Parser** - FOS cfgshow and CLI script parsing producing validated IR
 - [ ] **Phase 4: Validator and Sanitizer** - Name sanitization and post-sanitization collision detection
 - [ ] **Phase 5: Brocade Emitter** - FOS CLI command generation from IR (primary output path)
@@ -52,7 +52,7 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md — Six NX-OS test fixture files (TDD prerequisite: basic, enhanced_mode, multi_vsan, smart_zoning, unsupported, edge_cases)
-- [ ] 02-02-PLAN.md — Two-pass MDS parser state machine (parser.go) and table-driven tests (parser_test.go)
+- [x] 02-02-PLAN.md — Two-pass MDS parser state machine (parser.go) and table-driven tests (parser_test.go)
 
 ### Phase 3: Brocade Parser
 **Goal**: The Brocade parser correctly reads both cfgshow output format and FOS CLI script format, auto-detecting the format, and produces a fully populated IR struct
@@ -117,7 +117,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 1/2 | Complete    | 2026-03-29 |
-| 2. MDS Parser | 1/2 | In Progress|  |
+| 2. MDS Parser | 2/2 | Complete   | 2026-03-29 |
 | 3. Brocade Parser | 0/TBD | Not started | - |
 | 4. Validator and Sanitizer | 0/TBD | Not started | - |
 | 5. Brocade Emitter | 0/TBD | Not started | - |

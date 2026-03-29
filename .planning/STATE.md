@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 02-mds-parser/02-01-PLAN.md — NX-OS fixture files for MDS parser test suite
-last_updated: "2026-03-29T06:19:25.105Z"
+status: verifying
+stopped_at: Completed 02-mds-parser/02-02-PLAN.md — MDS NX-OS two-pass parser with six fixture tests
+last_updated: "2026-03-29T06:31:09.471Z"
 last_activity: 2026-03-29
 progress:
   total_phases: 7
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 
 Phase: 2 (MDS Parser) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-29
 
 Progress: [░░░░░░░░░░] 0%
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01-foundation P01 | 8 | 2 tasks | 15 files |
 | Phase 01-foundation P02 | 5 | 2 tasks | 6 files |
 | Phase 02-mds-parser P01 | 8 | 2 tasks | 6 files |
+| Phase 02-mds-parser P02 | 4 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,7 @@ Recent decisions affecting current work:
 - [Phase 02-mds-parser]: unsupported.cfg includes device-alias block so parser exercises both supported and unsupported members in the same zone
 - [Phase 02-mds-parser]: smart_zoning.cfg has no device-alias block — exercises raw pWWN parsing with smart-zoning keywords and no alias resolution
 - [Phase 02-mds-parser]: edge_cases.cfg OrphanZone intentionally absent from all zoneset member lists to exercise orphan zone detection
+- [Phase 02-mds-parser]: Two-pass MDS parser: pass1=aliases, pass2=zones/zonesets, composite key 'name@vsanN' for multi-VSAN, IVR regex checked before zone regex to avoid substring mis-parse
 
 ### Pending Todos
 
@@ -87,6 +89,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T06:19:25.102Z
-Stopped at: Completed 02-mds-parser/02-01-PLAN.md — NX-OS fixture files for MDS parser test suite
+Last session: 2026-03-29T06:31:09.468Z
+Stopped at: Completed 02-mds-parser/02-02-PLAN.md — MDS NX-OS two-pass parser with six fixture tests
 Resume file: None
