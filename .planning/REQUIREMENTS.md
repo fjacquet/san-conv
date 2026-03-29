@@ -25,9 +25,9 @@
 - [x] **CONV-01**: Tool converts MDS `device-alias` and `fcalias` entries to Brocade `alicreate` commands with pWWN members
 - [x] **CONV-02**: Tool converts MDS `zone` definitions to Brocade `zonecreate` commands, resolving alias/device-alias references
 - [x] **CONV-03**: Tool converts MDS `zoneset` definitions to Brocade `cfgcreate` commands
-- [ ] **CONV-04**: Tool converts Brocade `alias:` definitions to MDS `device-alias` entries
-- [ ] **CONV-05**: Tool converts Brocade `zone:` definitions to MDS `zone name X vsan 1` definitions
-- [ ] **CONV-06**: Tool converts Brocade `cfg:` definitions to MDS `zoneset name X vsan 1` definitions
+- [x] **CONV-04**: Tool converts Brocade `alias:` definitions to MDS `device-alias` entries
+- [x] **CONV-05**: Tool converts Brocade `zone:` definitions to MDS `zone name X vsan 1` definitions
+- [x] **CONV-06**: Tool converts Brocade `cfg:` definitions to MDS `zoneset name X vsan 1` definitions
 
 ### Name Sanitization
 
@@ -39,7 +39,7 @@
 
 - [x] **OUT-01**: Tool writes Brocade FOS CLI commands to stdout (or `--output` file) in correct application order: alicreate → zonecreate → cfgcreate
 - [x] **OUT-02**: Tool generates an executable shell script that includes `defzone --noaccess` preamble, all zone commands, `cfgenable <cfg-name>`, and `cfgsave` postamble
-- [ ] **OUT-03**: Tool writes MDS NX-OS config commands for the Brocade→MDS direction (device-alias, zone, zoneset, zoneset activate)
+- [x] **OUT-03**: Tool writes MDS NX-OS config commands for the Brocade→MDS direction (device-alias, zone, zoneset, zoneset activate)
 - [ ] **OUT-04**: Tool prints a conversion summary to stderr listing: objects converted, objects skipped, warnings issued
 
 ### CLI Interface
@@ -99,15 +99,15 @@
 | CONV-01 | Phase 5 | Complete |
 | CONV-02 | Phase 5 | Complete |
 | CONV-03 | Phase 5 | Complete |
-| CONV-04 | Phase 6 | Pending |
-| CONV-05 | Phase 6 | Pending |
-| CONV-06 | Phase 6 | Pending |
+| CONV-04 | Phase 6 | Complete |
+| CONV-05 | Phase 6 | Complete |
+| CONV-06 | Phase 6 | Complete |
 | SANI-01 | Phase 4 | Complete |
 | SANI-02 | Phase 4 | Complete |
 | SANI-03 | Phase 4 | Complete |
 | OUT-01 | Phase 5 | Complete |
 | OUT-02 | Phase 5 | Complete |
-| OUT-03 | Phase 6 | Pending |
+| OUT-03 | Phase 6 | Complete |
 | OUT-04 | Phase 7 | Pending |
 | CLI-01 | Phase 7 | Pending |
 | CLI-02 | Phase 7 | Pending |

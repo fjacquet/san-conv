@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-brocade-emitter/05-02-PLAN.md — Brocade FOS emitter TDD green phase, all 10 tests passing
-last_updated: "2026-03-29T15:13:57.762Z"
-last_activity: 2026-03-29 -- Phase 06 execution started
+stopped_at: Completed 06-mds-emitter/06-02-PLAN.md — MDS NX-OS emitter TDD green phase, all 10 tests passing
+last_updated: "2026-03-29T15:23:39.705Z"
+last_activity: 2026-03-29
 progress:
   total_phases: 7
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 12
-  completed_plans: 10
+  completed_plans: 12
   percent: 0
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 ## Current Position
 
 Phase: 06 (mds-emitter) — EXECUTING
-Plan: 1 of 2
-Status: Executing Phase 06
-Last activity: 2026-03-29 -- Phase 06 execution started
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-03-29
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -62,6 +62,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04-validator-and-sanitizer P02 | 12 | 1 tasks | 2 files |
 | Phase 05-brocade-emitter P01 | 7 | 1 tasks | 1 files |
 | Phase 05-brocade-emitter P02 | 4 | 1 tasks | 1 files |
+| Phase 06-mds-emitter P02 | 2 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,9 @@ Recent decisions affecting current work:
 - [Phase 05-01]: Test 9 multi-VSAN uses composite map keys 'zoneA@vsan10' with Zone.Name='zoneA' — mirrors MDS parser output format; emitter must use zone.Name not map key
 - [Phase 05-02]: sortedStringKeys uses Go generics type parameters instead of type-specific helpers — cleaner with no lint warnings
 - [Phase 05-02]: Emit() always uses zone.Name field (not map key) in FOS commands — avoids @vsanN composite key leakage into output
+- [Phase 06-mds-emitter]: zoneset activate name X vsan N is a real NX-OS config command — never commented (unlike Brocade cfgenable)
+- [Phase 06-mds-emitter]: VSAN 0 Brocade sentinel resolves to VSAN 1; MDS non-zero VSANs pass through unchanged — supports both conversion directions
+- [Phase 06-mds-emitter]: MDS Emit() has no scriptMode parameter — NX-OS paste-config is a single format
 
 ### Pending Todos
 
@@ -107,6 +111,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T14:20:11.499Z
-Stopped at: Completed 05-brocade-emitter/05-02-PLAN.md — Brocade FOS emitter TDD green phase, all 10 tests passing
+Last session: 2026-03-29T15:23:39.702Z
+Stopped at: Completed 06-mds-emitter/06-02-PLAN.md — MDS NX-OS emitter TDD green phase, all 10 tests passing
 Resume file: None

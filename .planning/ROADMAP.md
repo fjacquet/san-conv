@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Brocade Parser** - FOS cfgshow and CLI script parsing producing validated IR (completed 2026-03-29)
 - [x] **Phase 4: Validator and Sanitizer** - Name sanitization and post-sanitization collision detection (completed 2026-03-29)
 - [x] **Phase 5: Brocade Emitter** - FOS CLI command generation from IR (primary output path) (completed 2026-03-29)
-- [ ] **Phase 6: MDS Emitter** - NX-OS CLI command generation from IR (reverse direction)
+- [x] **Phase 6: MDS Emitter** - NX-OS CLI command generation from IR (reverse direction) (completed 2026-03-29)
 - [ ] **Phase 7: CLI Wiring and Integration** - Complete pipeline wiring, flags, summary output, and release binary
 
 ## Phase Details
@@ -128,8 +128,8 @@ Plans:
 
 Plans:
 
-- [ ] 06-01-PLAN.md — Table-driven MDS emitter tests (TDD red phase): 10 tests covering device-alias block, zone blocks, zoneset + activate, VSAN sentinel, ordering, determinism
-- [ ] 06-02-PLAN.md — Emit() implementation making all 10 tests pass (TDD green phase): device-alias/commit block, zone name blocks, zoneset activate
+- [x] 06-01-PLAN.md — Table-driven MDS emitter tests (TDD red phase): 10 tests covering device-alias block, zone blocks, zoneset + activate, VSAN sentinel, ordering, determinism
+- [x] 06-02-PLAN.md — Emit() implementation making all 10 tests pass (TDD green phase): device-alias/commit block, zone name blocks, zoneset activate
 
 ### Phase 7: CLI Wiring and Integration
 
@@ -158,5 +158,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 3. Brocade Parser | 1/2 | Complete    | 2026-03-29 |
 | 4. Validator and Sanitizer | 2/2 | Complete   | 2026-03-29 |
 | 5. Brocade Emitter | 2/2 | Complete   | 2026-03-29 |
-| 6. MDS Emitter | 0/2 | Not started | - |
+| 6. MDS Emitter | 2/2 | Complete   | 2026-03-29 |
 | 7. CLI Wiring and Integration | 0/TBD | Not started | - |
