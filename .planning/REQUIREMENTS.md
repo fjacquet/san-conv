@@ -50,7 +50,7 @@
 - [ ] **CLI-04**: Tool provides `--script` flag to also write a shell script file alongside the primary output
 - [ ] **CLI-05**: Tool provides `--fos-version` flag (values: `pre-8.1`, `8.1+`) defaulting to `pre-8.1` (conservative charset)
 - [ ] **CLI-06**: Tool exits with code 0 on success (warnings allowed), non-zero only on fatal parse/IO errors
-- [ ] **CLI-07**: Single distributable Go binary with no runtime dependencies (go install or pre-built release)
+- [x] **CLI-07**: Single distributable Go binary with no runtime dependencies (go install or pre-built release)
 
 ## v2 Requirements
 
@@ -115,7 +115,7 @@
 | CLI-04 | Phase 7 | Pending |
 | CLI-05 | Phase 7 | Pending |
 | CLI-06 | Phase 7 | Pending |
-| CLI-07 | Phase 1 | Pending |
+| CLI-07 | Phase 1 | Complete |
 
 **Coverage:**
 - v1 requirements: 29 total
