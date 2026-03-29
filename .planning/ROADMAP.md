@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - IR struct definitions, project scaffolding, and compilable binary skeleton (completed 2026-03-29)
 - [x] **Phase 2: MDS Parser** - Full NX-OS running-config parsing producing validated IR (completed 2026-03-29)
-- [ ] **Phase 3: Brocade Parser** - FOS cfgshow and CLI script parsing producing validated IR
+- [x] **Phase 3: Brocade Parser** - FOS cfgshow and CLI script parsing producing validated IR (completed 2026-03-29)
 - [ ] **Phase 4: Validator and Sanitizer** - Name sanitization and post-sanitization collision detection
 - [ ] **Phase 5: Brocade Emitter** - FOS CLI command generation from IR (primary output path)
 - [ ] **Phase 6: MDS Emitter** - NX-OS CLI command generation from IR (reverse direction)
@@ -122,7 +122,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 |-------|----------------|--------|-----------|
 | 1. Foundation | 1/2 | Complete    | 2026-03-29 |
 | 2. MDS Parser | 2/2 | Complete    | 2026-03-29 |
-| 3. Brocade Parser | 1/2 | In Progress|  |
+| 3. Brocade Parser | 1/2 | Complete    | 2026-03-29 |
 | 4. Validator and Sanitizer | 0/TBD | Not started | - |
 | 5. Brocade Emitter | 0/TBD | Not started | - |
 | 6. MDS Emitter | 0/TBD | Not started | - |
