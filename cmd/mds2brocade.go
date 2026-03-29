@@ -1,8 +1,9 @@
 package cmd
 
 import (
-	"fmt"
+	"os"
 
+	"github.com/fjacquet/san-conv/internal/converter"
 	"github.com/spf13/cobra"
 )
 
@@ -14,9 +15,19 @@ ready-to-apply Brocade FOS CLI commands (alicreate, zonecreate, cfgcreate).
 
 The output includes a defzone --noaccess preamble and cfgsave postamble.
 cfgenable is present as a commented-out line requiring human confirmation.`,
-	Args: cobra.MaximumNArgs(1),
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return fmt.Errorf("mds2brocade: not yet implemented")
+		outputFile, _ := cmd.Flags().GetString("output")
+		scriptFile, _ := cmd.Flags().GetString("script")
+		fosVersion, _ := cmd.Flags().GetString("fos-version")
+
+		return converter.Run(converter.Options{
+			InputFile:  args[0],
+			Direction:  "mds2brocade",
+			OutputFile: outputFile,
+			ScriptFile: scriptFile,
+			FOSVersion: fosVersion,
+		}, os.Stdout, os.Stderr)
 	},
 }
 

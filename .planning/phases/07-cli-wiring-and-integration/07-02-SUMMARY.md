@@ -128,3 +128,14 @@ None — plan executed exactly as written. All interfaces matched the specificat
 ---
 *Phase: 07-cli-wiring-and-integration*
 *Completed: 2026-03-29*
+
+## Self-Check: PASSED
+
+- FOUND: internal/converter/converter.go
+- FOUND: cmd/mds2brocade.go
+- FOUND: cmd/brocade2mds.go
+- FOUND: cmd/root.go
+- FOUND: .planning/phases/07-cli-wiring-and-integration/07-02-SUMMARY.md
+- FOUND commit: 89cdea3 (feat: converter.go pipeline orchestrator)
+- FOUND commit: c715547 (feat: cobra command wiring)
+- All 61 tests pass

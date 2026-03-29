@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-cli-wiring-and-integration/07-01-PLAN.md — TDD red phase, 10 failing integration tests for converter.Run()
-last_updated: "2026-03-29T15:44:39.544Z"
+stopped_at: Completed 07-cli-wiring-and-integration/07-02-PLAN.md — converter.Run() pipeline orchestrator and cobra command wiring; all 61 tests passing
+last_updated: "2026-03-29T15:52:37.472Z"
 last_activity: 2026-03-29
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 14
-  completed_plans: 12
+  completed_plans: 13
   percent: 0
 ---
 
@@ -64,6 +64,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 05-brocade-emitter P02 | 4 | 1 tasks | 1 files |
 | Phase 06-mds-emitter P02 | 2 | 1 tasks | 1 files |
 | Phase 07-cli-wiring-and-integration P01 | 2 | 1 tasks | 1 files |
+| Phase 07-cli-wiring-and-integration P02 | 4 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -101,6 +102,10 @@ Recent decisions affecting current work:
 - [Phase 06-mds-emitter]: MDS Emit() has no scriptMode parameter — NX-OS paste-config is a single format
 - [Phase 07-cli-wiring-and-integration]: Test 6 (hyphen preservation) uses inline fixture via os.WriteFile to t.TempDir() — no existing brocade fixture has hyphenated alias names
 - [Phase 07-cli-wiring-and-integration]: converter_test.go uses package converter (not _test suffix) for white-box access when converter.go defines exported symbols
+- [Phase 07-cli-wiring-and-integration]: converter.Run() accepts io.Writer parameters (not os.Stdout directly) — enables integration tests with bytes.Buffer without stdout capture hacks
+- [Phase 07-cli-wiring-and-integration]: Sanitize() called only in mds2brocade branch — brocade2mds preserves hyphens and all original names unchanged
+- [Phase 07-cli-wiring-and-integration]: Warning count snapshotted before second brocadeemitter.Emit call to prevent doubling warnings in stderr Summary
+- [Phase 07-cli-wiring-and-integration]: SilenceUsage=true on rootCmd — ops team sees only error message on missing file, not multi-line cobra usage text
 
 ### Pending Todos
 
@@ -114,6 +119,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T15:44:39.541Z
-Stopped at: Completed 07-cli-wiring-and-integration/07-01-PLAN.md — TDD red phase, 10 failing integration tests for converter.Run()
+Last session: 2026-03-29T15:52:37.468Z
+Stopped at: Completed 07-cli-wiring-and-integration/07-02-PLAN.md — converter.Run() pipeline orchestrator and cobra command wiring; all 61 tests passing
 Resume file: None
