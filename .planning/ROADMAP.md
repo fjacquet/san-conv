@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Validator and Sanitizer** - Name sanitization and post-sanitization collision detection (completed 2026-03-29)
 - [x] **Phase 5: Brocade Emitter** - FOS CLI command generation from IR (primary output path) (completed 2026-03-29)
 - [x] **Phase 6: MDS Emitter** - NX-OS CLI command generation from IR (reverse direction) (completed 2026-03-29)
-- [ ] **Phase 7: CLI Wiring and Integration** - Complete pipeline wiring, flags, summary output, and release binary
+- [x] **Phase 7: CLI Wiring and Integration** - Complete pipeline wiring, flags, summary output, and release binary (completed 2026-03-29)
 
 ## Phase Details
 
@@ -150,7 +150,7 @@ Plans:
 
 - [x] 07-01-PLAN.md — Integration tests for converter.Run() covering all CLI requirements (TDD red phase)
 - [x] 07-02-PLAN.md — converter.go pipeline orchestrator + cobra command wiring (TDD green phase)
-- [ ] 07-03-PLAN.md — Gap closure: root-level flat invocation (SC#1) and --direction flag (CLI-02 / SC#4)
+- [x] 07-03-PLAN.md — Gap closure: root-level flat invocation (SC#1) and --direction flag (CLI-02 / SC#4)
 
 ## Progress
 
@@ -165,4 +165,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 4. Validator and Sanitizer | 2/2 | Complete   | 2026-03-29 |
 | 5. Brocade Emitter | 2/2 | Complete   | 2026-03-29 |
 | 6. MDS Emitter | 2/2 | Complete   | 2026-03-29 |
-| 7. CLI Wiring and Integration | 2/3 | In Progress|  |
+| 7. CLI Wiring and Integration | 3/3 | Complete   | 2026-03-29 |

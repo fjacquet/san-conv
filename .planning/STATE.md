@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-cli-wiring-and-integration/07-02-PLAN.md — converter.Run() pipeline orchestrator and cobra command wiring; all 61 tests passing
-last_updated: "2026-03-29T15:52:37.472Z"
+stopped_at: "Completed 07-cli-wiring-and-integration/07-03-PLAN.md — gap closure: root-level flat invocation and --direction flag; all 61 tests passing"
+last_updated: "2026-03-29T16:16:46.526Z"
 last_activity: 2026-03-29
 progress:
   total_phases: 7
-  completed_phases: 6
-  total_plans: 14
-  completed_plans: 13
+  completed_phases: 7
+  total_plans: 15
+  completed_plans: 15
   percent: 0
 ---
 
@@ -65,6 +65,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 06-mds-emitter P02 | 2 | 1 tasks | 1 files |
 | Phase 07-cli-wiring-and-integration P01 | 2 | 1 tasks | 1 files |
 | Phase 07-cli-wiring-and-integration P02 | 4 | 2 tasks | 4 files |
+| Phase 07-cli-wiring-and-integration P03 | 15 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -106,6 +107,8 @@ Recent decisions affecting current work:
 - [Phase 07-cli-wiring-and-integration]: Sanitize() called only in mds2brocade branch — brocade2mds preserves hyphens and all original names unchanged
 - [Phase 07-cli-wiring-and-integration]: Warning count snapshotted before second brocadeemitter.Emit call to prevent doubling warnings in stderr Summary
 - [Phase 07-cli-wiring-and-integration]: SilenceUsage=true on rootCmd — ops team sees only error message on missing file, not multi-line cobra usage text
+- [Phase 07-cli-wiring-and-integration]: cobra routes subcommands before rootCmd.RunE fires — adding Args and RunE to rootCmd does not affect mds2brocade/brocade2mds subcommand routing
+- [Phase 07-cli-wiring-and-integration]: Root-level flags (--direction, --output, --script, --fos-version) declared only on rootCmd to avoid duplicate flags in subcommand help
 
 ### Pending Todos
 
@@ -119,6 +122,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T15:52:37.468Z
-Stopped at: Completed 07-cli-wiring-and-integration/07-02-PLAN.md — converter.Run() pipeline orchestrator and cobra command wiring; all 61 tests passing
+Last session: 2026-03-29T16:16:46.523Z
+Stopped at: Completed 07-cli-wiring-and-integration/07-03-PLAN.md — gap closure: root-level flat invocation and --direction flag; all 61 tests passing
 Resume file: None
