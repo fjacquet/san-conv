@@ -124,7 +124,12 @@ Plans:
   1. Given a Brocade IR, the emitter produces a `device-alias database` block with one `device-alias name X pwwn Y` line per alias
   2. Given a Brocade IR, the emitter produces `zone name X vsan 1` blocks with correct `member` lines for each zone
   3. Given a Brocade IR, the emitter produces a `zoneset name X vsan 1` block followed by `zoneset activate name X vsan 1`
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+
+- [ ] 06-01-PLAN.md — Table-driven MDS emitter tests (TDD red phase): 10 tests covering device-alias block, zone blocks, zoneset + activate, VSAN sentinel, ordering, determinism
+- [ ] 06-02-PLAN.md — Emit() implementation making all 10 tests pass (TDD green phase): device-alias/commit block, zone name blocks, zoneset activate
 
 ### Phase 7: CLI Wiring and Integration
 
@@ -153,5 +158,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 3. Brocade Parser | 1/2 | Complete    | 2026-03-29 |
 | 4. Validator and Sanitizer | 2/2 | Complete   | 2026-03-29 |
 | 5. Brocade Emitter | 2/2 | Complete   | 2026-03-29 |
-| 6. MDS Emitter | 0/TBD | Not started | - |
+| 6. MDS Emitter | 0/2 | Not started | - |
 | 7. CLI Wiring and Integration | 0/TBD | Not started | - |
