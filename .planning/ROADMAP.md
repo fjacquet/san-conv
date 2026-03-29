@@ -77,7 +77,11 @@ Plans:
   2. Given an alias name containing a hyphen (pre-8.1 mode), the hyphen is replaced with underscore and a per-name warning is emitted
   3. Given two MDS names that produce the same sanitized Brocade name, a collision warning is emitted listing all affected original names, and the output names are disambiguated
   4. With `--fos-version 8.1+`, dollar and caret characters are permitted and no warning is emitted for them
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Table-driven sanitizer tests covering truncation, char replacement, collision detection, and cross-reference updates (TDD red phase)
+- [ ] 04-02-PLAN.md — Sanitize() implementation making all tests pass: char replacement, truncation, collision disambiguation, map key rebuild (TDD green phase)
 
 ### Phase 5: Brocade Emitter
 **Goal**: The Brocade emitter produces correct, ready-to-apply FOS CLI commands from a validated IR, including mandatory security and persistence preamble/postamble
@@ -123,7 +127,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 1. Foundation | 1/2 | Complete    | 2026-03-29 |
 | 2. MDS Parser | 2/2 | Complete    | 2026-03-29 |
 | 3. Brocade Parser | 1/2 | Complete    | 2026-03-29 |
-| 4. Validator and Sanitizer | 0/TBD | Not started | - |
+| 4. Validator and Sanitizer | 0/2 | Planned | - |
 | 5. Brocade Emitter | 0/TBD | Not started | - |
 | 6. MDS Emitter | 0/TBD | Not started | - |
 | 7. CLI Wiring and Integration | 0/TBD | Not started | - |
