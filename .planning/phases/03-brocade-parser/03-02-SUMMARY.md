@@ -110,6 +110,17 @@ None - no external service configuration required.
 - `internal/parser/brocade.Parse()` is available for Phase 4 (validator) and Phase 5 (brocade emitter) consumption
 - No blockers for Phase 4 progression
 
+## Self-Check: PASSED
+
+- FOUND: `internal/parser/brocade/parser.go`
+- FOUND: `.planning/phases/03-brocade-parser/03-02-SUMMARY.md`
+- FOUND: commit `2c0b63a` (feat(03-02): implement Brocade FOS parser...)
+- `go test ./internal/parser/brocade/ -count=1` exits 0 (6 tests pass)
+- `go test ./... -count=1` exits 0 (13 tests pass, no regressions)
+- `go vet ./...` exits 0
+- `go build ./...` exits 0
+- Zero golangci-lint issues in our code (`internal/parser/brocade/`)
+
 ---
 *Phase: 03-brocade-parser*
 *Completed: 2026-03-29*

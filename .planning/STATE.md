@@ -84,7 +84,7 @@ Recent decisions affecting current work:
 - [Phase 03-brocade-parser]: TDD red phase: parser_test.go references Parse() before implementation; go vet confirms undefined: Parse as expected
 - [Phase 03-brocade-parser]: cfgshowState typed int avoids fragile iota duplication between parseCfgshowFormat and appendMembers helper
 - [Phase 03-brocade-parser]: appendMembers receives cfgshowState parameter — state machine helpers share typed constants without global state
-- [Phase 04-validator-and-sanitizer]: Sanitize() function signature: func Sanitize(cfg *ir.ZoningConfig, fosVersion string) *ir.ZoningConfig — returns mutated IR with rebuilt maps and appended warnings
+- [Phase 04-validator-and-sanitizer]: Sanitize() function signature: func Sanitize(cfg *ir.ZoningConfig, fosVersion string)*ir.ZoningConfig — returns mutated IR with rebuilt maps and appended warnings
 - [Phase 04-validator-and-sanitizer]: Sanitizer buildRenameMap pipeline: char-replace then truncate then collision; warnings appended to cfg in each phase; applied to cross-references before map key rebuild
 - [Phase 04-validator-and-sanitizer]: Collision disambiguation uses sort.Strings for deterministic ordering; applyDisambiguatingSuffix truncates base before appending suffix to guarantee <=63 chars
 

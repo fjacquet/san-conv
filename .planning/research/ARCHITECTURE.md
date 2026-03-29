@@ -153,6 +153,7 @@ san-conv/
 **When to use:** NX-OS config is hierarchical but line-oriented — indented sub-blocks under `device-alias database` or `zone name FOO vsan 1` headers. A state machine tracks which block is currently open. This is the standard pattern for Cisco-family config parsing and what ciscoconfparse uses internally (parent/child relationship model).
 
 **Trade-offs:**
+
 - Simple to reason about, no grammar definition needed
 - Requires careful handling of block-exit conditions (blank lines, next top-level keyword)
 - Regex maintenance grows proportionally to config complexity — acceptable here because the MDS zoning section uses a small, stable keyword set
@@ -244,6 +245,7 @@ type ZoneConfig struct {
 ```
 
 **Key IR design decisions:**
+
 - WWNs stored normalized (lowercase, colon-separated) to canonicalize across format differences
 - Zone members carry a type tag so emitters know whether to emit an alias reference or a raw WWN
 - `Active` string captures the enabled zoneset/cfg name; Brocade requires `cfgenable` to be emitted; MDS requires `zoneset activate name X vsan Y`
@@ -417,15 +419,18 @@ stdout (or file):
 The MDS parser must handle two independent config sections in running-config order:
 
 **Device-alias database section (always before zone config):**
+
 ```
 device-alias database
   device-alias name host_hba0 pwwn 50:01:11:22:33:aa:bb:cc
   device-alias name array_spa0 pwwn 50:06:01:65:3e:a0:1e:d7
 device-alias commit
 ```
+
 Note: In enhanced mode (default since NX-OS 8.5(1)), zone members reference device-alias names natively. In basic mode, zone member `pwwn` lines appear in place of `device-alias` lines.
 
 **Zone and zoneset sections (per-VSAN):**
+
 ```
 zone name host_hba0_array_spa0 vsan 1
   member device-alias host_hba0
@@ -440,6 +445,7 @@ zoneset activate name PROD_FAB_A vsan 1
 ### Brocade FOS — cfgshow Format
 
 The Brocade parser must handle the defined-configuration section (the parseable part):
+
 ```
 Defined configuration:
  cfg:   PROD_FAB_A  host_hba0_array_spa0

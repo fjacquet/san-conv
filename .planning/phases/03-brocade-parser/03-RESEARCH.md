@@ -15,6 +15,7 @@ The hardest parsing challenge is the cfgshow backslash continuation: a line endi
 **Primary recommendation:** Single-pass state machine mirroring the MDS parser structure. Two plans: (1) create Brocade test fixtures first (TDD red-phase), (2) implement parser.go + parser_test.go against those fixtures.
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -27,6 +28,7 @@ The hardest parsing challenge is the cfgshow backslash continuation: a line endi
 ## Standard Stack
 
 ### Core
+
 | Library | Version | Purpose | Why Standard |
 |---------|---------|---------|--------------|
 | stdlib `bufio` | Go 1.26.1 (project go.mod) | Line-by-line scanner | Same as MDS parser; already in use |
@@ -36,6 +38,7 @@ The hardest parsing challenge is the cfgshow backslash continuation: a line endi
 | `github.com/stretchr/testify` | v1.11.1 (in go.mod) | `require.Equal`, `require.Len`, `require.NoError` in tests | Locked project convention — use `require` not `assert` |
 
 ### Supporting
+
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
 | stdlib `fmt` | Go 1.26.1 | Warning message formatting | Same pattern as MDS parser for cfg.Warnings |
@@ -43,6 +46,7 @@ The hardest parsing challenge is the cfgshow backslash continuation: a line endi
 | stdlib `os` | Go 1.26.1 | `os.Open` in tests | Same pattern as MDS parser_test.go |
 
 ### Alternatives Considered
+
 | Instead of | Could Use | Tradeoff |
 |------------|-----------|----------|
 | Single-pass state machine | Two-pass like MDS parser | Two-pass not needed: Brocade formats define aliases before zones, zones before cfgs; single pass is simpler |
@@ -53,6 +57,7 @@ The hardest parsing challenge is the cfgshow backslash continuation: a line endi
 ## Architecture Patterns
 
 ### Recommended Project Structure
+
 ```
 internal/parser/brocade/
 ├── doc.go           # Already exists (package declaration only)
@@ -69,9 +74,11 @@ testdata/brocade/
 ```
 
 ### Pattern 1: Exported Parse Entry Point (mirrors MDS parser)
+
 **What:** A single `Parse(r io.Reader) (*ir.ZoningConfig, error)` function that reads all lines, detects format, delegates to sub-parsers, returns a fully populated `*ir.ZoningConfig`.
 **When to use:** Always — this is the only public API for the package.
 **Example:**
+
 ```go
 // Source: mirrors internal/parser/mds/parser.go structure
 func Parse(r io.Reader) (*ir.ZoningConfig, error) {
@@ -101,9 +108,11 @@ func Parse(r io.Reader) (*ir.ZoningConfig, error) {
 ```
 
 ### Pattern 2: Format Auto-Detection (PARSE-09)
+
 **What:** Scan the first N lines for mutually exclusive markers. cfgshow always has `Defined configuration:` as a top-level header; CLI scripts always start with `alicreate`, `zonecreate`, or `cfgcreate` verbs.
 **When to use:** Called from `Parse()` before delegating to format-specific parser.
 **Example:**
+
 ```go
 // Source: derived from format specification in phase description
 func detectCLIFormat(lines []string) bool {
@@ -124,14 +133,16 @@ var reCLICommand = regexp.MustCompile(`^(alicreate|zonecreate|cfgcreate)\s+`)
 ```
 
 ### Pattern 3: cfgshow State Machine (PARSE-07)
+
 **What:** Line-by-line state machine that tracks whether we are inside a cfg, zone, or alias block. The `Defined configuration:` header starts the parse. Type tokens (`cfg:`, `zone:`, `alias:`) switch state. Lines with only whitespace + member data accumulate members. Backslash continuation is handled by checking if a trimmed member line ends with `\`.
 **When to use:** When `detectCLIFormat` returns false.
 
 **cfgshow structure rules:**
+
 - `Defined configuration:` — section header, start parse
-- ` cfg:   <name>` — switch state to cfg, store name
-- ` zone:  <name>` — switch state to zone, store name
-- ` alias: <name>` — switch state to alias, store name
+- `cfg:   <name>` — switch state to cfg, store name
+- `zone:  <name>` — switch state to zone, store name
+- `alias: <name>` — switch state to alias, store name
 - Lines after a type-token line contain member lists: whitespace-padded, semicolon-separated
 - A line ending with `\` (after trimming) means the next line continues the member list
 - `Effective configuration:` or end-of-file signals end of Defined configuration section
@@ -165,7 +176,9 @@ func parseMemberLine(line string) (members []string, continues bool) {
 ```
 
 ### Pattern 4: CLI Format Parser (PARSE-08)
+
 **What:** Each command is a single line. Three command types:
+
 - `alicreate "name", "pwwn"` — one alias per line, one member (pWWN only)
 - `zonecreate "name", "member1;member2;..."` — one zone per line, semicolon-separated members
 - `cfgcreate "name", "zone1;zone2;..."` — one cfg per line, semicolon-separated zone names
@@ -220,16 +233,19 @@ func parseCLIFormat(lines []string, cfg *ir.ZoningConfig) {
 ```
 
 ### Pattern 5: Zone Keys for Brocade IR
+
 **What:** The MDS parser uses composite keys `"name@vsanN"` for `cfg.Zones` to support multi-VSAN configs. Brocade has no VSAN concept, so VSAN is always 0. For consistency with the MDS parser pattern — and to avoid breaking emitter consumers who key lookup by name — use the plain name as the key (not `"name@vsan0"`).
 **When to use:** All Brocade parser writes to `cfg.Zones` and `cfg.ZoneConfigs`.
 
 **Critical IR contract:** Looking at `zoningconfig.go` comments: "For Brocade (single-fabric, no VSANs), all zones use VSAN 0 as a sentinel." The `Zone.VSAN` and `ZoneConfig.VSAN` fields are set to 0. The map key should be the plain name since there is no ambiguity without VSAN scoping.
 
 ### Pattern 6: Shared normalizeWWN Helper
+
 **What:** Both MDS and Brocade parsers need WWN normalization. The MDS parser defines `normalizeWWN` as a package-private function in its own package. The Brocade parser must define its own copy (or a shared `internal/ir` function — but since IR has zero imports by design, keep the helper local to each parser package).
 **When to use:** Whenever a pWWN string is stored into `ir.Alias.PWWN` or `ir.ZoneMember.Value` for type "pwwn".
 
 ### Anti-Patterns to Avoid
+
 - **Using "name@vsan0" as map key for Brocade zones:** Emitters and consumers in later phases will look up zones by name directly. Since Brocade is always VSAN 0, the `@vsan0` suffix adds complexity with no benefit. Use plain name.
 - **Trying to parse cfgshow member lines as individual-line records:** Members in cfgshow appear as continuation lines after the type token, not as individual lines with keywords. They are semicolon-separated on a possibly multi-line block.
 - **Treating backslash continuation as optional:** The `\` at end-of-line is mandatory for multi-line member blocks in cfgshow. Omitting the continuation check causes silent truncation.
@@ -251,33 +267,39 @@ func parseCLIFormat(lines []string, cfg *ir.ZoningConfig) {
 ## Common Pitfalls
 
 ### Pitfall 1: Backslash Continuation Silent Truncation
+
 **What goes wrong:** Parser reads first line of a multi-line member block, registers members from that line, then starts a new block when it encounters the next indented line — missing all continuation members.
 **Why it happens:** Parser doesn't check for trailing `\` before deciding the member block is complete.
 **How to avoid:** After each member-data line, check `strings.HasSuffix(strings.TrimSpace(line), "\\")`. If true, set a `continuation` boolean and continue accumulating members on the next line without resetting state.
 **Warning signs:** Test with `cfgshow_continuation.cfg` fixture — zone member count should match all members across the continuation, not just the first line.
 
 ### Pitfall 2: cfgshow Type Token vs Member Line Confusion
+
 **What goes wrong:** Parser misidentifies a member line starting with whitespace as a type token (or vice versa), because both have leading whitespace in cfgshow output.
-**Why it happens:** Type tokens like ` cfg:   name` and member lines like `                member01; member02` both start with spaces.
+**Why it happens:** Type tokens like `cfg:   name` and member lines like `member01; member02` both start with spaces.
 **How to avoid:** Use specific regexps that anchor on the type keyword: `^\s+cfg:\s+`, `^\s+zone:\s+`, `^\s+alias:\s+`. Member lines that don't match any type token are treated as member data.
 **Warning signs:** A `cfg:` name getting confused with a member, or members getting skipped because they were mistaken for a new object.
 
 ### Pitfall 3: cfgshow Section Boundaries
+
 **What goes wrong:** Parser processes lines outside the `Defined configuration:` section, potentially picking up junk from `Effective configuration:` or summary lines.
 **Why it happens:** Some cfgshow outputs include an `Effective configuration:` section after the `Defined configuration:` section, with the same syntax. Processing both would duplicate entries.
 **How to avoid:** Set a boolean `inDefinedSection` that becomes true on `Defined configuration:` and false on `Effective configuration:` or end-of-file. Only process type tokens and member lines when `inDefinedSection == true`.
 
 ### Pitfall 4: CLI Format — Missing Quotes or Comma Variants
+
 **What goes wrong:** Regexp `^alicreate\s+"([^"]+)"\s*,\s*"([^"]+)"` fails to match a line where the name or member list has no quotes, or where there is no comma.
 **Why it happens:** FOS CLI specification mandates quotes and comma, but real-world scripts or manual extracts may have variations (e.g., tabs instead of spaces, or a copy-paste with curly quotes).
 **How to avoid:** Test with realistic fixture files. For v1, strict matching against the canonical format is correct — anything that doesn't match is silently skipped (same as MDS parser behavior for unrecognized lines). Document this in a test with a malformed line.
 
 ### Pitfall 5: Zone Map Key Strategy Inconsistency
+
 **What goes wrong:** Using `"name@vsan0"` for Brocade zones creates a key strategy inconsistency with MDS zones (`"name@vsanN"`). Emitters in Phase 5/6 iterating `cfg.Zones` will need to know which key format was used.
 **Why it happens:** The IR design comments say "For Brocade (single-fabric, no VSANs), all zones use VSAN 0 as a sentinel" — but doesn't specify the map key format.
 **How to avoid:** Use plain name as map key for Brocade output (no `@vsan0` suffix). The `Zone.VSAN` field carries the 0 value for those who need to check it. This makes emitter iteration identical for both: iterate `cfg.Zones`, use `z.Name`, ignore VSAN for Brocade output.
 
 ### Pitfall 6: alicreate pWWN vs alias-name member type
+
 **What goes wrong:** In `zonecreate` member lists, members can be either alias names (e.g., `host_01`) or raw pWWNs (e.g., `10:00:00:00:c9:ab:cd:ef`). If all members are treated as aliases, pWWN-only zones produce wrong IR.
 **Why it happens:** The CLI format allows both — an alias reference or a direct pWWN.
 **How to avoid:** Check if a member string looks like a WWN: contains `:` at regular intervals, length ~23 chars. A simple heuristic: `strings.Contains(member, ":")` is sufficient since valid FOS alias names cannot contain colons (they use `[A-Za-z0-9_$^-]` charset).
@@ -287,6 +309,7 @@ func parseCLIFormat(lines []string, cfg *ir.ZoningConfig) {
 Verified patterns from the project codebase:
 
 ### Scanner setup (mirrors MDS parser)
+
 ```go
 // Source: internal/parser/mds/parser.go
 scanner := bufio.NewScanner(r)
@@ -300,6 +323,7 @@ if err := scanner.Err(); err != nil {
 ```
 
 ### normalizeWWN (copy from MDS parser)
+
 ```go
 // Source: internal/parser/mds/parser.go
 func normalizeWWN(raw string) string {
@@ -317,6 +341,7 @@ func normalizeWWN(raw string) string {
 ```
 
 ### Test fixture loading pattern (mirrors MDS parser_test.go)
+
 ```go
 // Source: internal/parser/mds/parser_test.go
 fixturePath := filepath.Join("..", "..", "..", "testdata", "brocade", tt.fixture)
@@ -331,6 +356,7 @@ require.Equal(t, "brocade-fos", cfg.SourceFormat, "SourceFormat must be 'brocade
 ```
 
 ### cfgshow backslash continuation handling
+
 ```go
 // Source: derived from Brocade FOS format specification
 func parseMemberLine(line string) (members []string, continues bool) {
@@ -351,6 +377,7 @@ func parseMemberLine(line string) (members []string, continues bool) {
 ```
 
 ### cfgshow state machine skeleton
+
 ```go
 // Source: derived from Brocade FOS cfgshow format specification
 const (
@@ -429,6 +456,7 @@ func parseCfgshowFormat(lines []string, cfg *ir.ZoningConfig) {
 The following five fixtures cover all three requirements (PARSE-07, PARSE-08, PARSE-09):
 
 ### testdata/brocade/cfgshow_basic.cfg (PARSE-07, PARSE-09)
+
 ```
 Defined configuration:
  cfg:   Production_cfg
@@ -448,6 +476,7 @@ Defined configuration:
 ```
 
 ### testdata/brocade/cfgshow_continuation.cfg (PARSE-07 — backslash continuation)
+
 ```
 Defined configuration:
  cfg:   BigFabric_cfg
@@ -470,6 +499,7 @@ Defined configuration:
 ```
 
 ### testdata/brocade/cli_basic.cfg (PARSE-08, PARSE-09)
+
 ```
 alicreate "host_01", "10:00:00:00:c9:ab:cd:ef"
 alicreate "storage_01", "50:05:07:61:01:23:45:67"
@@ -478,12 +508,14 @@ cfgcreate "Production_cfg", "fabric_zone1"
 ```
 
 ### testdata/brocade/cli_pwwn_members.cfg (PARSE-08 — pWWN members in zonecreate)
+
 ```
 zonecreate "direct_zone", "10:00:00:00:c9:ab:cd:ef;50:05:07:61:01:23:45:67"
 cfgcreate "Direct_cfg", "direct_zone"
 ```
 
 ### testdata/brocade/edge_cases.cfg (empty zone, cfgshow + Effective section boundary)
+
 ```
 Defined configuration:
  cfg:   Test_cfg
@@ -530,6 +562,7 @@ Effective configuration:
 Step 2.6: SKIPPED (no external dependencies — this is a pure Go code/testdata change. Go 1.26.1 is installed and verified. All libraries already in go.mod.)
 
 **Verified runtime:**
+
 - Go: 1.26.1 darwin/arm64
 - `go build ./...`: SUCCESS
 - `go test ./...`: 7 tests pass, 0 fail
@@ -541,6 +574,7 @@ Step 2.6: SKIPPED (no external dependencies — this is a pure Go code/testdata 
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - `internal/parser/mds/parser.go` — reference implementation for parser structure, state machine pattern, normalizeWWN, io.Reader interface
 - `internal/ir/zoningconfig.go` — canonical IR struct; VSAN 0 sentinel documented in comments
 - `internal/parser/mds/parser_test.go` — reference for test structure, fixture path pattern, require usage
@@ -548,17 +582,20 @@ Step 2.6: SKIPPED (no external dependencies — this is a pure Go code/testdata 
 - `CLAUDE.md` (project) — confirmed: stdlib bufio+regexp, testify require (not assert), io.Writer/Reader interface pattern
 
 ### Secondary (MEDIUM confidence)
+
 - Phase description in `<additional_context>` — cfgshow and CLI format examples are canonical; backslash continuation documented
 - `.planning/REQUIREMENTS.md` — PARSE-07, PARSE-08, PARSE-09 requirements confirmed
 - `.planning/ROADMAP.md` — Phase 3 goal and success criteria confirmed
 - `.planning/phases/02-mds-parser/02-01-PLAN.md` — TDD plan structure reference (fixture-first → parser second)
 
 ### Tertiary (LOW confidence)
+
 - FOS alias naming charset claim (`[A-Za-z0-9_$^-]` cannot contain colons) — drawn from CLAUDE.md technology stack section which was researched and confirmed in prior phases; used as basis for colon heuristic
 
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH — all libraries already in project go.mod and in use by MDS parser
 - Architecture: HIGH — directly mirrors MDS parser pattern with format-specific adaptations
 - Pitfalls: HIGH — backslash continuation and cfgshow section boundaries are verifiable from format spec; zone key strategy is MEDIUM (emitter impact unknown until Phase 5)

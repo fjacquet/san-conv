@@ -179,6 +179,7 @@ Features to defer until product-market fit is established.
 | Config diff mode | MEDIUM | HIGH | P3 |
 
 **Priority key:**
+
 - P1: Must have for launch
 - P2: Should have, add when possible
 - P3: Nice to have, future consideration
@@ -195,7 +196,7 @@ Features to defer until product-market fit is established.
 | Multi-VSAN handling | Yes (per-VSAN VSAN index setting) | Unknown | Yes |
 | Platform support | Windows 64-bit only | Any (SAN Health client) | Linux / macOS / Windows |
 | FOS version tested | FOS 7.x and 8.x only | Unknown | FOS 7.x–10.x (naming rule aware) |
-| Distribution model | .exe download or go install | Requires emailing SANHealth.Admin@broadcom.com | go install or GitHub release binary |
+| Distribution model | .exe download or go install | Requires emailing <SANHealth.Admin@broadcom.com> | go install or GitHub release binary |
 | Offline operation | Yes (input file) | No (requires Broadcom team involvement) | Yes |
 | Conversion direction | Brocade→Cisco only | Brocade→Cisco only | Bidirectional |
 | Error handling | Errors to log file, stops | Vendor-managed process | Warn and continue |

@@ -19,6 +19,7 @@ The highest-risk correctness issue for this phase is the device-alias enhanced m
 ---
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -36,6 +37,7 @@ The highest-risk correctness issue for this phase is the device-alias enhanced m
 ## Standard Stack
 
 ### Core
+
 | Library | Version | Purpose | Why Standard |
 |---------|---------|---------|--------------|
 | stdlib `bufio` | Go 1.26.1 (project module) | Line-by-line scanning of config text | Canonical Go approach; handles CRLF transparently; no deps |
@@ -45,6 +47,7 @@ The highest-risk correctness issue for this phase is the device-alias enhanced m
 | `internal/ir` | local | Target struct definitions | The locked IR contract from Phase 1 |
 
 ### Supporting
+
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
 | `github.com/stretchr/testify` | v1.11.1 | Test assertions | All parser tests — `require.Equal`, `require.NoError`, `require.Len` |
@@ -52,6 +55,7 @@ The highest-risk correctness issue for this phase is the device-alias enhanced m
 | stdlib `path/filepath` | Go 1.26.1 | Construct fixture paths | `filepath.Join("testdata", "mds", "basic.cfg")` |
 
 ### Alternatives Considered
+
 | Instead of | Could Use | Tradeoff |
 |------------|-----------|----------|
 | `bufio.Scanner` | `io.Reader` + manual `bytes.Split` | Scanner is cleaner for line-at-a-time; handles CRLF automatically |
@@ -65,6 +69,7 @@ The highest-risk correctness issue for this phase is the device-alias enhanced m
 ## Architecture Patterns
 
 ### Recommended Project Structure
+
 ```
 internal/parser/mds/
 ├── parser.go         # Parse() func, state machine, all regexes
@@ -118,11 +123,13 @@ func Parse(r io.Reader) (*ir.ZoningConfig, error) {
 **What:** An integer or string `state` variable tracks which config block is currently open. Every line is classified by matching against the top-level header regexes first; if no header matches, the current-state member regexes are tried.
 
 **States required for pass 1:**
+
 - `stateIdle` — scanning for top-level keywords
 - `stateDeviceAliasDB` — inside `device-alias database` ... `device-alias commit`
 - `stateFcAlias` — inside `fcalias name X vsan N` block
 
 **States required for pass 2:**
+
 - `stateIdle`
 - `stateZone` — inside `zone name X vsan N` block
 - `stateZoneset` — inside `zoneset name X vsan N` block
@@ -233,11 +240,13 @@ if m := reMemberPWWN.FindStringSubmatch(line); m != nil {
 **What:** The IR `Warnings []string` field (from `zoningconfig.go`) stores all non-fatal parse issues. Each warning string must include: object type, object name, issue description, and (for skip decisions) what action was taken.
 
 **Format convention:**
+
 ```
 "<context>: <message> — <action taken>"
 ```
 
 **Named warning categories (for this phase):**
+
 | Warning Name | Trigger | Format |
 |---|---|---|
 | `smart-zoning-role` | `member pwwn X init/target/both` | `zone %q: smart-zoning role %q on member %s stripped — no FOS equivalent` |
@@ -314,6 +323,7 @@ if m := reMemberPWWN.FindStringSubmatch(line); m != nil {
 **What goes wrong:** A zone has `member fcalias Storage-Port` (VSAN-scoped) and `member device-alias Host-HBA` (fabric-wide). A parser that only builds one alias map drops members of the other type.
 
 **How to avoid:** Pass 1 populates two separate data structures:
+
 - `deviceAliasMap map[string]*ir.Alias` — from `device-alias database` block
 - `fcAliasMap map[int]map[string]*ir.Alias` — from all `fcalias` blocks, keyed by VSAN
 
@@ -332,6 +342,7 @@ Pass 2 member resolution checks both: fcalias reference → look in `fcAliasMap[
 Verified patterns based on the confirmed NX-OS syntax from the prompt and the locked IR from `internal/ir/zoningconfig.go`:
 
 ### Fixture: basic.cfg (PARSE-01, PARSE-02, PARSE-03, PARSE-04)
+
 ```
 device-alias database
   device-alias name Server-HBA-A pwwn 50:05:0c:00:00:c8:aa:50
@@ -353,6 +364,7 @@ zoneset activate name SAN-VSAN10 vsan 10
 ```
 
 ### Fixture: enhanced_mode.cfg (PARSE-01, PARSE-03 — NX-OS 8.5.1+ default)
+
 ```
 device-alias database
   device-alias name Server-HBA-A pwwn 50:05:0c:00:00:c8:aa:50
@@ -370,6 +382,7 @@ zoneset activate name SAN-VSAN10 vsan 10
 ```
 
 ### Fixture: multi_vsan.cfg (PARSE-06)
+
 ```
 device-alias database
   device-alias name Host-A pwwn 20:00:00:00:c9:12:34:56
@@ -396,6 +409,7 @@ zoneset activate name ZS-VSAN20 vsan 20
 ```
 
 ### Fixture: smart_zoning.cfg (PARSE-03, PARSE-05 — smart zoning keywords)
+
 ```
 zone name SmartZone vsan 10
   member pwwn 50:05:0c:00:00:c8:aa:50 init
@@ -407,6 +421,7 @@ zoneset name SAN-VSAN10 vsan 10
 ```
 
 ### Fixture: unsupported.cfg (PARSE-05)
+
 ```
 zone name Mixed vsan 10
   member device-alias Server-HBA-A
@@ -420,6 +435,7 @@ zoneset name SAN-VSAN10 vsan 10
 ```
 
 ### Fixture: edge_cases.cfg (IVR, empty zone, zone not in zoneset)
+
 ```
 ! This is a comment — should be silently skipped
 device-alias database
@@ -444,6 +460,7 @@ zoneset activate name SAN-VSAN10 vsan 10
 ```
 
 ### Parser package signature
+
 ```go
 // Source: project architecture contract in ARCHITECTURE.md
 // internal/parser/mds/parser.go
@@ -462,6 +479,7 @@ func Parse(r io.Reader) (*ir.ZoningConfig, error)
 ```
 
 ### WWN normalization helper
+
 ```go
 // normalizeWWN normalizes a port WWN to lowercase colon-separated format.
 // Input: "50:05:0C:00:00:C8:AA:50" or "50050c0000c8aa50"
@@ -481,6 +499,7 @@ func normalizeWWN(raw string) string {
 ```
 
 ### Table-driven test structure
+
 ```go
 // Source: standard Go table-driven test pattern
 // internal/parser/mds/parser_test.go
@@ -585,6 +604,7 @@ func TestParse(t *testing.T) {
 | Smart zoning keywords inline on member lines | No syntax change — still present in 9.x | Introduced NX-OS 5.2(6) | Must be stripped; no FOS equivalent |
 
 **Deprecated/outdated:**
+
 - `member pwwn` as the only zone member type: Works for basic-mode configs only. Enhanced mode (production default since 8.5.1) requires `member device-alias` handling.
 
 ---
@@ -642,6 +662,7 @@ Directives from `./CLAUDE.md` that the planner must verify compliance with:
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - `internal/ir/zoningconfig.go` — locked IR contract (local file, read directly)
 - `.planning/research/ARCHITECTURE.md` — state machine patterns, regex examples, data flow (project research, 2026-03-28)
 - `.planning/research/PITFALLS.md` — 15 verified pitfalls with official source citations (project research, 2026-03-28)
@@ -651,11 +672,13 @@ Directives from `./CLAUDE.md` that the planner must verify compliance with:
 - Go stdlib regexp docs — `regexp.MustCompile` package-level pattern (stdlib)
 
 ### Secondary (MEDIUM confidence)
+
 - Cisco MDS 9000 NX-OS Fabric Configuration Guide 9.x — device-alias enhanced mode, zone/zoneset syntax (cited in PITFALLS.md with URL)
 - Cisco Smart Zoning technical note — `init`/`target`/`both` keyword syntax (cited in PITFALLS.md with URL)
 - Cisco MDS NX-OS 9.2(2) Release Notes — 63-char name limit change (cited in PITFALLS.md with URL)
 
 ### Tertiary (LOW confidence)
+
 - None — all findings backed by project research or stdlib docs.
 
 ---
@@ -663,6 +686,7 @@ Directives from `./CLAUDE.md` that the planner must verify compliance with:
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH — all libraries are stdlib or already in go.mod from Phase 1
 - Architecture: HIGH — patterns directly from verified ARCHITECTURE.md research and locked IR
 - Pitfalls: HIGH — 7 of 15 pitfalls from PITFALLS.md directly apply to Phase 2; all have official source citations

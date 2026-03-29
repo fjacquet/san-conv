@@ -77,6 +77,7 @@ None. No TODOs, FIXMEs, placeholder comments, empty return stubs, or hardcoded e
 ### Human Verification Required
 
 None. All success criteria are verifiable programmatically:
+
 - Fixture file content is directly readable
 - Parser behavior is fully covered by deterministic unit tests
 - No external services, UI, or real-time behavior involved

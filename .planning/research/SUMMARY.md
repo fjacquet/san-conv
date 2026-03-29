@@ -22,6 +22,7 @@ The critical risk category is silent data corruption during conversion. Brocade 
 The stack is minimal by design — a deliberate "no surprises" foundation appropriate for an ops tool that ops teams must trust. The only external runtime dependency is cobra; everything else is Go stdlib. Dev tooling (golangci-lint v2, goreleaser v2, cobra-cli) is managed via Go 1.24+ `tool` directives in `go.mod`, eliminating the `tools.go` workaround. Go 1.25 is current stable (1.25.8 as of March 2026).
 
 **Core technologies:**
+
 - **Go 1.25:** Single-binary compilation, no runtime deps, cross-platform — project constraint; perfect fit
 - **github.com/spf13/cobra v1.10.2:** CLI subcommands (`mds2brocade`, `brocade2mds`), flags, `--help`, shell completion — industry standard
 - **stdlib `bufio` + `regexp`:** Line-by-line parsing with state machine — canonical Go approach for vendor config text; no grammar library fits this domain
@@ -36,6 +37,7 @@ The stack is minimal by design — a deliberate "no surprises" foundation approp
 The MVP addresses ops teams migrating production SAN fabrics. The tool must be trustworthy before it is feature-complete — partial output with explicit warnings beats a hard stop or silent data loss.
 
 **Must have (table stakes — P1):**
+
 - Parse full MDS `show running-config` zoning sections (device-alias database, zones, zonesets, multi-VSAN)
 - Parse Brocade `cfgshow` / `configshow` output (including wrapped member lists)
 - Convert device-alias → alicreate with character sanitization and per-name warnings
@@ -50,17 +52,20 @@ The MVP addresses ops teams migrating production SAN fabrics. The tool must be t
 - Cross-platform binary: Linux/macOS/Windows
 
 **Should have (differentiators — P2):**
+
 - Name-conflict detection and deduplication (collision after sanitization)
 - Per-VSAN output file splitting (`--split-vsan`)
 - Orphaned zone detection and reporting
 - Device-alias basic mode: pWWN zone member → alias name recovery
 
 **Defer (v2+):**
+
 - JSON/YAML intermediate representation output (`--format json`)
 - LSAN zone handling (cross-fabric zones requiring IVR/metaSAN topology)
 - Config diff mode (delta between two zone databases)
 
 **Anti-features (explicitly out of scope):**
+
 - SSH/live switch connection — violates offline tool contract, unacceptable production risk
 - GUI or web interface — contradicts single-binary ops model
 - Interactive prompts — breaks automation pipelines
@@ -71,6 +76,7 @@ The MVP addresses ops teams migrating production SAN fabrics. The tool must be t
 The architecture follows a strict compiler pipeline: parser (frontend) → canonical IR → validator → emitter (backend). Each vendor has a dedicated parser and emitter. The IR (`ZoningConfig` struct in `internal/ir/`) is the only shared data contract; all other packages depend on it but not on each other. This produces a strict DAG with no import cycles and makes bidirectionality O(n) rather than O(n²) as formats are added. All emitters accept `io.Writer` — never `os.Stdout` directly — making output testable and flaggable to files without rewrites.
 
 **Major components:**
+
 1. `cmd/san-conv/cmd/` (cobra CLI) — wires pipeline, owns flag definitions, opens files, orchestrates parse→validate→emit
 2. `internal/parser/mds` and `internal/parser/brocade` — vendor-specific state-machine parsers producing `*ir.ZoningConfig`
 3. `internal/ir/zoningconfig.go` — format-neutral canonical struct definitions; zero logic; no import cycles possible
@@ -103,37 +109,44 @@ Additional high-importance pitfalls: name length collision after sanitization (t
 Based on the dependency graph from ARCHITECTURE.md and pitfall-to-phase mapping from PITFALLS.md:
 
 ### Phase 1: Foundation — IR and Project Scaffolding
+
 **Rationale:** The IR struct is the shared contract that all other packages depend on. Changing it after parsers and emitters exist cascades breaking changes everywhere. It must be stable before any other code is written. Scaffolding (module init, cobra setup, `go.mod` tool directives) has no dependencies and is fastest when done fresh.
 **Delivers:** Compilable `san-conv` binary with `mds2brocade` and `brocade2mds` subcommands returning "not implemented"; defined `ZoningConfig`, `Alias`, `Zone`, `ZoneMember`, `ZoneConfig` structs in `internal/ir/`; configured golangci-lint, goreleaser, testdata directory structure.
 **Addresses:** Stack setup (cobra, testify, dev tools), IR struct definitions, project layout from ARCHITECTURE.md.
 **Avoids:** Import cycles (IR-first design prevents them by construction).
 
 ### Phase 2: MDS Parser — NX-OS Running-Config Parsing
+
 **Rationale:** MDS→Brocade is the primary direction. The MDS parser is the most complex component (multi-VSAN, two alias types, multiple member types, smart zoning) and contains the most pitfalls. Building and thoroughly testing it before touching emitters ensures the IR is well-exercised before downstream components depend on it.
 **Delivers:** `internal/parser/mds` that correctly parses device-alias database, fcalias blocks, zone definitions (all member types), and zoneset definitions from real NX-OS running-configs; table-driven tests with fixture files covering enhanced mode, basic mode, multi-VSAN, smart zoning, IVR zones, and edge cases.
 **Implements:** Parser state machine pattern, two-pass alias resolution, VSAN-scoped zone buckets.
 **Avoids:** Pitfalls 1 (enhanced mode), 4 (fcalias coexistence), 6 (multi-VSAN merge), 7 (smart zoning keywords), 10 (IVR zone misidentification), 13 (non-WWN member types), 15 (inactive zones silently omitted).
 
 ### Phase 3: Brocade Parser — FOS cfgshow Parsing
+
 **Rationale:** Brocade parser can be built in parallel with the MDS parser (same IR target, no inter-dependency) but is placed here sequentially to allow full focus on one parser at a time. The Brocade parser has its own set of format-specific pitfalls distinct from MDS.
 **Delivers:** `internal/parser/brocade` that correctly parses cfgshow output (defined and effective sections) and FOS CLI script format; handles wrapped member lists; normalizes space-in-name; table-driven tests with fixture files.
 **Avoids:** Pitfalls 8 (spaces ignored in zone names), 14 (wrapped member list parsing).
 
 ### Phase 4: Validator and Name Sanitization
+
 **Rationale:** The sanitization and validation logic must be built before emitters, because emitters render whatever is in the IR — an unsanitized name in the IR will produce invalid FOS output. The validator is also intentionally read-only (no IR mutation), and establishing this boundary early prevents the anti-pattern of "fixing" names inside validation.
 **Delivers:** `internal/validator/validator.go` with name-length checks (63-char limit), character set validation (hyphen detection, FOS pre-8.1 rules), WWN format validation, post-sanitization collision detection with disambiguation suffixes, empty zone warnings, unsupported member type warnings; `--target-fos-version` flag design.
 **Avoids:** Pitfalls 2 (hyphen stripping), 3 (fabric-wide naming requirement), 5 (name collision after sanitization), 11 (63/64-char limit discrepancy).
 
 ### Phase 5: Brocade Emitter — FOS CLI Output Generation
+
 **Rationale:** Brocade emitter is the primary output path (primary use case is MDS→Brocade). Template-driven design keeps FOS CLI formatting out of converter logic. Critical security/persistence requirements (`defzone --noaccess`, `cfgsave`) must be embedded in the template, not left as caller responsibility.
 **Delivers:** `internal/emitter/brocade` with `text/template`-driven FOS CLI command generation; mandatory `defzone --noaccess` preamble; `cfgsave` as final statement; `cfgenable` commented out with warning comment; golden-file tests comparing template output against expected FOS commands.
 **Avoids:** Pitfalls 9 (default zone policy mismatch), 12 (cfgsave omitted).
 
 ### Phase 6: MDS Emitter — NX-OS CLI Output Generation
+
 **Rationale:** MDS emitter supports the Brocade→MDS direction. Same patterns as Brocade emitter; placed after to allow lessons from Phase 5 to inform it.
 **Delivers:** `internal/emitter/mds` with `text/template`-driven NX-OS CLI command generation (device-alias database block, zone definitions, zoneset definition, `zoneset activate`); golden-file tests.
 
 ### Phase 7: CLI Wiring and Integration
+
 **Rationale:** The CLI layer wires the complete pipeline and owns the user-facing features: conversion summary output, stderr/stdout separation, `--output` file flag, and end-to-end integration tests. These cannot be built until all pipeline components exist.
 **Delivers:** Complete `san-conv` binary with both subcommands functional end-to-end; conversion summary (counts of converted/warned/skipped objects); structured warning output to stderr; `--output` flag for script file generation; integration tests using real fixture configs; goreleaser build producing Linux/macOS/Windows binaries.
 **Addresses:** All P1 features from FEATURES.md; UX pitfalls (stdout/stderr separation, hard-stop avoidance).
@@ -149,10 +162,12 @@ Based on the dependency graph from ARCHITECTURE.md and pitfall-to-phase mapping 
 ### Research Flags
 
 Phases likely needing deeper research during planning:
+
 - **Phase 2 (MDS Parser):** fcalias vs device-alias coexistence in the same zone requires careful test fixture construction from real enterprise configs; smart zoning fixture configs may need sourcing.
 - **Phase 4 (Validator / Sanitization):** FOS version matrix (7.x/8.0/8.1+/9.x/10.x) for naming rules may have edge cases not covered in current research; `--target-fos-version` flag semantics need ops team input.
 
 Phases with standard patterns (research-phase likely unnecessary):
+
 - **Phase 1 (Foundation):** Go module setup, cobra scaffolding, goreleaser config — all well-documented with official examples.
 - **Phase 5 (Brocade Emitter):** `text/template` rendering is well-understood; FOS CLI command syntax is fully documented in Broadcom official docs.
 - **Phase 6 (MDS Emitter):** Same as Phase 5; NX-OS syntax is fully documented in Cisco official docs.
@@ -183,6 +198,7 @@ Phases with standard patterns (research-phase likely unnecessary):
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - Cisco MDS 9000 NX-OS Fabric Configuration Guide 9.x — device-alias, zones, zonesets, IVR
 - Broadcom FOS 9.2.x Administration Guide — zone types, cfgshow format, defzone, cfgenable, cfgsave
 - Broadcom FOS 9.2.x Command Reference — alicreate, zonecreate, cfgcreate, cfgenable, defzone
@@ -193,6 +209,7 @@ Phases with standard patterns (research-phase likely unnecessary):
 - GitHub Cisco-SAN/ZoneMigrator — existing tool limitations confirmed
 
 ### Secondary (MEDIUM confidence)
+
 - PenguinPunk.net — FOS hyphen-stripping confirmed in production (operator report)
 - CrossTL research paper (arXiv:2508.21256) — O(n²) → O(n) via unified IR
 - golangci-lint v2 migration guide (ldez.github.io) — v2 config format changes
@@ -200,6 +217,7 @@ Phases with standard patterns (research-phase likely unnecessary):
 - Nick Tailor blog — Cisco vs Brocade command equivalence reference
 
 ### Tertiary (LOW confidence)
+
 - cobra vs kong vs urfave/cli comparison — multiple community sources agree on cobra as default; no single authoritative source
 - Brocade alicreate/zonecreate CLI examples (belznotbells.com) — practitioner blog consistent with official docs but not official
 

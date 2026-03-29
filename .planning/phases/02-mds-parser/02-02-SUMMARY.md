@@ -97,6 +97,7 @@ Each task was committed atomically:
 ### Auto-fixed Issues
 
 **1. [Rule 1 - Bug] Corrected wantAliases from 2 to 3 in basic mode test**
+
 - **Found during:** Task 2 (GREEN phase — first test run)
 - **Issue:** Plan spec stated `wantAliases=2` for basic.cfg, but basic.cfg contains 2 device-aliases (Server-HBA-A, Storage-Port-1) + 1 fcalias (Server-port-A) = 3 distinct Aliases map keys. Test failed with "has 3 items, expected 2"
 - **Fix:** Updated test assertion from `Len(t, cfg.Aliases, 2, ...)` to `Len(t, cfg.Aliases, 3, ...)` with accurate comment explaining the 2+1 breakdown

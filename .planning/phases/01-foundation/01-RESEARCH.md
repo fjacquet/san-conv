@@ -15,6 +15,7 @@ The key technical detail for this phase is the golangci-lint v2 configuration fo
 **Primary recommendation:** Scaffold with `go mod init github.com/fjacquet/san-conv`, add cobra v1.10.2 as the only runtime dep, add golangci-lint/goreleaser/cobra-cli as `tool` directives, define the five IR structs in `internal/ir/zoningconfig.go`, stub both subcommands with `RunE` returning `fmt.Errorf("not implemented")`, write `.golangci.yml` with `version: "2"` and `linters.default: standard`, and write `.goreleaser.yml` with `version: 2` and the three target platforms.
 
 <phase_requirements>
+
 ## Phase Requirements
 
 | ID | Description | Research Support |
@@ -292,6 +293,7 @@ type ZoneConfig struct {
 ```
 
 **IR design rationale:**
+
 - Zero methods, zero logic: IR is pure data. No `Validate()`, no `Sanitize()` methods — those belong in `internal/validator/`.
 - Map keys use original names: Parsers store pre-sanitization names; the validator/sanitizer produces a new sanitized map. This separation prevents lossy data during validation.
 - `Warnings []string` on `ZoningConfig`: Parsers accumulate non-fatal warnings inline. The CLI layer drains this slice to stderr. This keeps parsers standalone and testable.
@@ -335,36 +337,42 @@ Create the same pattern for: `internal/parser/brocade/`, `internal/validator/`, 
 ## Common Pitfalls
 
 ### Pitfall 1: golangci-lint v1 vs v2 Config Format
+
 **What goes wrong:** `.golangci.yml` without `version: "2"` at the top is treated as v1 format. In v2, the v1 format produces deprecation warnings or errors. The `enable-all:` and `disable-all:` keys from v1 do not exist in v2.
 **Why it happens:** Documentation for golangci-lint v1 is still widely indexed; many examples online predate v2.
 **How to avoid:** First line of `.golangci.yml` MUST be `version: "2"` (quoted string). Use `linters.default: standard` instead of any v1 enable/disable list.
 **Warning signs:** `golangci-lint run` prints "configuration file contains unknown key" or migration prompts.
 
 ### Pitfall 2: goreleaser v2 vs v1 Config Format
+
 **What goes wrong:** `.goreleaser.yml` without `version: 2` at the top is treated as v1 schema. v2 uses integer `2`, not string `"2"`. Missing this causes schema validation errors.
 **Why it happens:** v1 config had no version key; adding it with wrong type (string vs integer) silently falls back to wrong schema.
 **How to avoid:** First line of `.goreleaser.yml` MUST be `version: 2` (unquoted integer). Run `goreleaser check` to validate config.
 **Warning signs:** goreleaser outputs "configuration file is a v1 config" warning.
 
 ### Pitfall 3: go.mod Module Path Mismatch
+
 **What goes wrong:** If the module path in `go.mod` does not match the GitHub repository path, `go install github.com/fjacquet/san-conv@latest` fails. All import paths in `cmd/` and `internal/` reference the module path — changing it later requires updating all import statements.
 **Why it happens:** Developers use `go mod init san-conv` (just the name) during local development but the correct path includes the full GitHub org prefix.
 **How to avoid:** Use `go mod init github.com/fjacquet/san-conv` on the first `go mod init` run. Never change this after code exists.
 **Warning signs:** `go install` fails with "no Go files in..." or "cannot find module providing...".
 
 ### Pitfall 4: IR Import Cycles
+
 **What goes wrong:** If any `internal/` package (parser, validator, emitter) imports another `internal/` package other than `internal/ir`, an import cycle is likely. For example: `internal/parser/mds` importing `internal/validator` creates a cycle if validator ever imports a parser type.
 **Why it happens:** The compiler pipeline pattern requires a strict DAG. Accidentally adding cross-package imports at the stub stage is easier to prevent than to untangle later.
 **How to avoid:** The only cross-package import allowed in this phase is: `cmd/` → `internal/ir`. All other `internal/` packages in Phase 1 are empty stubs with no imports. Enforce with `golangci-lint`'s import cycle detection.
 **Warning signs:** `go build` reports "import cycle not allowed".
 
 ### Pitfall 5: Stub `RunE` Not Returning Error
+
 **What goes wrong:** A stub subcommand that returns `nil` from `RunE` (instead of `fmt.Errorf("not implemented")`) passes silently in integration tests without actually doing anything. This masks missing implementation in Phase 7.
 **Why it happens:** Copy-paste from tutorials that show `return nil` in `RunE`.
 **How to avoid:** Every stub `RunE` in Phase 1 MUST return `fmt.Errorf("%s: not yet implemented", cmd.Use)`. This causes the command to exit non-zero when called, making it obvious the stub is active.
 **Warning signs:** `san-conv mds2brocade somefile.txt` exits 0 with no output.
 
 ### Pitfall 6: go 1.26 `go.mod` `go` Directive vs Minimum Version
+
 **What goes wrong:** `go mod init` on this machine produces `go 1.26.1` in `go.mod`. This sets the minimum Go version for anyone building the tool. If the ops team's Go installation is older (e.g., 1.21.x), they cannot build from source.
 **Why it happens:** `go mod init` automatically uses the installed Go version.
 **How to avoid:** Decide the minimum Go version the project targets. The `tool` directive requires Go 1.24+. If Go 1.24 is acceptable as minimum, change `go 1.26.1` to `go 1.24.0` in `go.mod` after `go mod init`. For a new project where ops team downloads pre-built binaries (via goreleaser), this is a non-issue — source builds are only for the developer.
@@ -497,6 +505,7 @@ tool (
 | `os.Exit(1)` in cobra commands | `RunE` returning error | cobra best practice, always | Cobra handles exit codes from RunE; os.Exit skips deferred cleanup |
 
 **Deprecated/outdated:**
+
 - `tools.go` pattern: Replaced by `go.mod tool` directive in Go 1.24+. Still works but is no longer idiomatic.
 - golangci-lint v1 YAML format: Use `golangci-lint migrate` to convert if upgrading an existing project.
 - `cobra.CheckErr(err)` in `main()`: Replaced by `os.Exit(1)` after `rootCmd.Execute()` returns an error, per current cobra docs.
@@ -532,19 +541,22 @@ tool (
 ## Sources
 
 ### Primary (HIGH confidence)
-- Go official module layout docs: https://go.dev/doc/modules/layout — cmd/ + internal/ layout for CLI tools
-- Go 1.24 release notes: https://go.dev/doc/go1.24 — `tool` directive in go.mod
-- Go 1.26 release notes: https://go.dev/doc/go1.26 — no breaking changes for cobra/stdlib CLI projects
-- cobra official docs: https://cobra.dev/docs/how-to-guides/working-with-commands/ — RunE, stub pattern, init() registration
-- golangci-lint config docs: https://golangci-lint.run/docs/configuration/file/ — version: "2" requirement, linters.default
-- goreleaser builds docs: https://goreleaser.com/customization/builds/builders/go/ — goos/goarch config, version: 2
+
+- Go official module layout docs: <https://go.dev/doc/modules/layout> — cmd/ + internal/ layout for CLI tools
+- Go 1.24 release notes: <https://go.dev/doc/go1.24> — `tool` directive in go.mod
+- Go 1.26 release notes: <https://go.dev/doc/go1.26> — no breaking changes for cobra/stdlib CLI projects
+- cobra official docs: <https://cobra.dev/docs/how-to-guides/working-with-commands/> — RunE, stub pattern, init() registration
+- golangci-lint config docs: <https://golangci-lint.run/docs/configuration/file/> — version: "2" requirement, linters.default
+- goreleaser builds docs: <https://goreleaser.com/customization/builds/builders/go/> — goos/goarch config, version: 2
 
 ### Secondary (MEDIUM confidence)
+
 - ldez.github.io golangci-lint v2 migration guide — breaking changes from v1 to v2 confirmed
 - WebSearch: goreleaser v2 minimal config examples — multiple sources agree on version: 2 + CGO_ENABLED=0 pattern
 - WebSearch: cobra project layout best practices — multiple sources agree on cmd/root.go + cmd/subcommand.go pattern
 
 ### Verified from environment
+
 - `go version` → go1.26.1 darwin/arm64 (HIGH — direct check)
 - `/opt/homebrew/bin/golangci-lint version` → v2.11.4 (HIGH — direct check)
 - `/opt/homebrew/bin/goreleaser --version` → GitVersion: 2.14.3 (HIGH — direct check)
@@ -555,6 +567,7 @@ tool (
 ## Metadata
 
 **Confidence breakdown:**
+
 - Standard stack: HIGH — all versions verified via module proxy and direct tool invocation on this machine
 - Architecture: HIGH — Go module layout from official docs; IR struct design from prior ARCHITECTURE.md research; cobra patterns from official cobra.dev docs
 - Pitfalls: HIGH — golangci-lint v2 format change verified via direct linter invocation; goreleaser v2 format from official docs; import cycle prevention is Go toolchain-enforced

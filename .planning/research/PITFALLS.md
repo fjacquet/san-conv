@@ -18,6 +18,7 @@ Developers familiar with older MDS configs or lab switches test against basic-mo
 
 **How to avoid:**
 The parser must handle both zone member forms independently:
+
 - `member pwwn <wwn>` — direct pWWN, resolve immediately
 - `member device-alias <name>` — symbolic reference, requires lookup in the `device-alias database` block parsed separately
 - `member fcalias <name>` — VSAN-scoped alias, requires lookup in the `fcalias` block for that VSAN
@@ -25,6 +26,7 @@ The parser must handle both zone member forms independently:
 Build a two-pass parser: pass 1 collects the device-alias database and all fcalias definitions; pass 2 resolves zone members. Never assume a zone member is always a raw WWN.
 
 **Warning signs:**
+
 - Conversion output has far fewer alias definitions than expected
 - Zone members in output are empty or only a fraction of the input
 - Test config uses basic-mode syntax but prod configs do not
@@ -44,12 +46,14 @@ FOS 8.0.x only allows underscores as special characters. The CLI accepts the com
 
 **How to avoid:**
 During name sanitization, always replace hyphens with underscores in output alias/zone names. Do not rely on the target switch to reject invalid names — it may silently corrupt them instead. Include a sanitization step that:
+
 1. Replaces `-` with `_`
 2. Strips or replaces `$`, `^` unless targeting FOS 8.1.0+
 3. Ensures names do not start with a digit if targeting FOS 8.0.x and older
 4. Emits a warning per renamed object listing original and sanitized name
 
 **Warning signs:**
+
 - Target fabric includes older switches (check FOS version in docs or config comments)
 - Source MDS config heavily uses hyphens in device-alias names (common in enterprise naming conventions like `ESX01-HBA1`)
 - Post-activation path loss affecting specific aliases with hyphens
@@ -71,6 +75,7 @@ Engineers assume the target switch's FOS version governs what names are valid. I
 Default the output sanitization to the most conservative character set (letters, digits, underscore; must start with a letter) unless the operator explicitly confirms all fabric members run FOS 8.1.0+. Provide a CLI flag like `--target-fos-version 8.1+` to unlock enhanced naming. In warning messages, note the constraint.
 
 **Warning signs:**
+
 - Mixed FOS versions mentioned in source config comments or hostname patterns
 - Source zone names start with digits or contain hyphens/dollar/caret
 - Ops team reports "Enhanced Zone Object naming feature is not supported by the fabric" after applying generated script
@@ -92,6 +97,7 @@ Most documentation and examples show one or the other, never both. Real enterpri
 Parse both databases. For fcalias: locate `fcalias name <X> vsan <V>` blocks and index by (name, VSAN). For device-alias: locate the global `device-alias database` block and index by name. During zone member resolution, check both indexes. Warn if a member references an alias that is not in either index (orphaned member).
 
 **Warning signs:**
+
 - Source config has a `device-alias database` block near the top and also `fcalias name` blocks inside VSAN sub-sections
 - Zone member count in output is lower than in input
 - Conversion warnings about unresolved aliases
@@ -113,6 +119,7 @@ Name sanitization is typically implemented as a simple character replacement wit
 After sanitizing all names, run a collision-detection pass over the full name set. For any collision, apply a disambiguation suffix (e.g., append `_1`, `_2`) and emit a warning listing all colliding original names and the chosen output names. Never silently overwrite.
 
 **Warning signs:**
+
 - Source config has many similar long names differing only in characters that get sanitized to the same value
 - Warning count in output is lower than expected given the source config size
 - Output alias count is lower than input alias count
@@ -134,6 +141,7 @@ Simple regex-based parsers scan for `zone name <X>` without tracking which VSAN 
 Implement a stateful parser that tracks current VSAN context. When a `vsan <N>` (or `zone name <X> vsan <N>`) directive is encountered, update the active VSAN. Scope all zone and zoneset objects to their VSAN. When converting MDS→Brocade, emit a warning if more than one VSAN is present (since Brocade has no VSAN equivalent in the same sense) and either process each VSAN as a separate conversion or merge with explicit warning.
 
 **Warning signs:**
+
 - Source config has `zone name` entries appearing under different VSAN sub-sections
 - Zone names in output exceed the expected count
 - Two zones in different VSANs have the same name but different members; only one survives
@@ -155,6 +163,7 @@ Smart zoning is an MDS-only feature. Developers unfamiliar with MDS do not know 
 Parse `member pwwn <wwn> [init|target|both]` with the optional keyword explicitly. Strip the keyword during conversion (it has no Brocade equivalent) and emit a warning: "Smart zoning role annotation on `<alias>` dropped — no FOS equivalent. Verify TCAM behavior on target fabric."
 
 **Warning signs:**
+
 - Source config contains lines like `member pwwn 10:00:... init`
 - `zone mode smart-zoning enable` appears in the VSAN context
 - Generated Brocade WWN values contain `init`, `target`, or `both` as a suffix
@@ -176,6 +185,7 @@ This behavior is not prominently documented and contradicts most conventions. De
 When parsing Brocade FOS config input, normalize all zone/alias/cfg names by stripping internal spaces before indexing. When generating FOS output, never produce names with embedded spaces.
 
 **Warning signs:**
+
 - Brocade input config contains zone names with spaces
 - Parsed alias count in Brocade→MDS conversion is lower than `alishow` output suggests (aliases with spaces being counted as duplicates)
 
@@ -196,6 +206,7 @@ Operators focus on getting the zone configuration right and do not check the def
 Prepend `defzone --noaccess` to every generated FOS script before `cfgenable`. Emit a prominently visible warning in the output: "Default zone policy set to no-access to match MDS deny-by-default behavior. Verify this is correct for your target fabric." This is safe by default — it denies unknown devices rather than permitting them.
 
 **Warning signs:**
+
 - Generated script contains only zonecreate/alicreate/cfgenable with no defzone command
 - Ops team reports unexpected device communication after applying the script
 
@@ -216,6 +227,7 @@ The IVR zone and zoneset syntax uses the same keywords as regular zones with an 
 Explicitly match `ivr zone` and `ivr zoneset` as separate token types and skip them with a conversion warning: "IVR zone `<name>` skipped — Inter-VSAN Routing has no FOS equivalent. Manual cross-fabric zoning required." Do not allow IVR zone lines to fall through into regular zone parsing.
 
 **Warning signs:**
+
 - Source config contains `ivr enable` or `ivr virtual-domain-add`
 - Generated output contains zone names starting with known IVR naming patterns
 - Zone member WWNs in output have unexpected VSAN-specific characteristics
@@ -237,6 +249,7 @@ The limit change between NX-OS versions is not widely known. Developers assume t
 Enforce a 63-character maximum on all output alias/zone/cfg names (the more conservative limit). If a name must be truncated, emit a warning with original and truncated names. Reserve the last 2 characters for collision-disambiguation suffixes (`_1` through `_9`), meaning the effective usable prefix is 61 characters.
 
 **Warning signs:**
+
 - Source config contains device-alias names of exactly 64 characters
 - No truncation warnings appear in converter output despite long names in source
 
@@ -257,6 +270,7 @@ Cisco `zoneset activate` is persistent — it modifies the running-config which 
 Always emit `cfgsave` as the final command in every generated FOS script, immediately after `cfgenable`. Add a comment before it explaining why: `# cfgsave makes the configuration persistent across reboots`. Emit a warning if for some reason the script omits cfgsave.
 
 **Warning signs:**
+
 - Generated script ends with `cfgenable` with no `cfgsave`
 - Ops team reports zoning works until a reboot, then reverts
 
@@ -277,6 +291,7 @@ Most documentation shows pWWN-only examples. Non-WWN member types are less commo
 Build the parser to recognize all MDS member type keywords explicitly. For unsupported types (interface, fcid, ip-address, symbolic-nodename), emit a per-member warning and skip the member. For domain/port (which has a Brocade equivalent), attempt conversion with a warning noting topology dependency. Never pass unrecognized member types through to output.
 
 **Warning signs:**
+
 - Source config contains `member interface fc1/1` or `member ip-address` lines
 - Generated Brocade commands contain non-hexadecimal strings where WWNs are expected
 
@@ -297,6 +312,7 @@ The Brocade CLI wraps output at terminal width. Scripts that capture and parse s
 Implement a Brocade parser that treats the member list as a single logical semicolon-delimited string, joining continuation lines before splitting on semicolons. Identify continuation lines by the absence of a command keyword at the start of the line (they typically start with whitespace or a continuation character).
 
 **Warning signs:**
+
 - Parsed alias or zone member count is lower than `alishow`/`zoneshow` output suggests
 - Member lists in output stop at an arbitrary short count
 - No errors during parsing of a Brocade config known to have large zones
@@ -318,6 +334,7 @@ Converters naturally start from `zoneset activate` to find what to convert. But 
 Parse all zone definitions regardless of active zoneset membership. For zones not in the active zoneset, still generate Brocade output but mark them with a comment `# Not in active zoneset on source`. Emit a summary warning listing how many defined zones were not in the active zoneset. Let the operator decide whether to include them.
 
 **Warning signs:**
+
 - Source `show zoneset active` output has fewer zones than `show zone` output
 - Ops team asks "where are the DR zones?" after applying the generated script
 
@@ -434,21 +451,21 @@ Parser implementation phase — separate the "parse all zones" pass from the "id
 
 ## Sources
 
-- Cisco MDS 9000 Series Fabric Configuration Guide, Release 9.x — Distributing Device Alias Services: https://www.cisco.com/c/en/us/td/docs/dcn/mds9000/sw/9x/configuration/fabric/cisco-mds-9000-nx-os-fabric-configuration-guide-9x/distributing_device_alias_services.html
-- Cisco MDS 9000 Series Fabric Configuration Guide, Release 9.x — Configuring and Managing Zones: https://www.cisco.com/c/en/us/td/docs/dcn/mds9000/sw/9x/configuration/fabric/cisco-mds-9000-nx-os-fabric-configuration-guide-9x/configuring_and_managing_zones.html
-- Broadcom FOS 9.2.x zoneCreate command reference: https://techdocs.broadcom.com/us/en/fibre-channel-networking/fabric-os/fabric-os-commands/9-2-x/Fabric-OS-Commands/zoneCreate.html
-- Broadcom FOS 9.2.x defZone command reference: https://techdocs.broadcom.com/us/en/fibre-channel-networking/fabric-os/fabric-os-commands/9-2-x/Fabric-OS-Commands/defZone.html
-- Broadcom FOS 9.2.x Zone Configurations administration guide: https://techdocs.broadcom.com/us/en/fibre-channel-networking/fabric-os/fabric-os-administration/9-2-x/Administering-Advanced-Zoning-AG/v26770788.html
-- Broadcom FOS 9.2.x Setting the Default Zoning Mode: https://techdocs.broadcom.com/us/en/fibre-channel-networking/fabric-os/fabric-os-administration/9-2-x/Administering-Advanced-Zoning-AG/v26772700.html
-- Dell KB 000227366 — Enhanced Zone Object naming feature not supported: https://www.dell.com/support/kbdoc/en-us/000227366/connectrix-brocade-unable-to-create-alias-zones-due-to-error-enhanced-zone-object-naming-feature-is-not-supported-by-the-fabric
-- Cisco Smart Zoning technical note: https://www.cisco.com/c/en/us/support/docs/storage-networking/zoning/116390-technote-smartzoning-00.html
-- Cisco MDS NX-OS Release 9.2(2) Release Notes — device-alias 64 char ISSU blocker: https://www.cisco.com/c/en/us/td/docs/dcn/mds9000/sw/9x/release-notes/cisco-mds-9000-nx-os-release-notes-922.html
-- GitHub Cisco-SAN/ZoneMigrator — documented limitations (pwwn-only, Windows-only, FOS 7.x/8.x only): https://github.com/Cisco-SAN/ZoneMigrator
-- PenguinPunk.net — Brocade alias and zone syntax hyphen-stripping gotcha: https://www.penguinpunk.net/blog/brocade-alias-and-zone-syntax-or-how-fos-is-a-love-hate-thing/
-- Broadcom SAN Scalability Guidelines for Fabric OS 9.x: https://docs.broadcom.com/doc/SAN-Scalability-FOS9x-UG
-- Nick Tailor — Cisco vs Brocade SAN Switch Commands: https://nicktailor.com/tech-blog/cisco-vs-brocade-san-switch-commands-explained-with-diagnostics-and-examples/
-- Dell KB on Brocade cfgsave and cfgenable: https://storagearea.network/how-to-save-brocade-zoning-configuration-cfgsave/
-- Cisco Inter-VSAN Routing Configuration Guide, Release 9.x: https://www.cisco.com/c/en/us/td/docs/dcn/mds9000/sw/9x/configuration/ivr/cisco-mds-9000-nx-os-ivr-configuration-guide-9x/basic_ivr.html
+- Cisco MDS 9000 Series Fabric Configuration Guide, Release 9.x — Distributing Device Alias Services: <https://www.cisco.com/c/en/us/td/docs/dcn/mds9000/sw/9x/configuration/fabric/cisco-mds-9000-nx-os-fabric-configuration-guide-9x/distributing_device_alias_services.html>
+- Cisco MDS 9000 Series Fabric Configuration Guide, Release 9.x — Configuring and Managing Zones: <https://www.cisco.com/c/en/us/td/docs/dcn/mds9000/sw/9x/configuration/fabric/cisco-mds-9000-nx-os-fabric-configuration-guide-9x/configuring_and_managing_zones.html>
+- Broadcom FOS 9.2.x zoneCreate command reference: <https://techdocs.broadcom.com/us/en/fibre-channel-networking/fabric-os/fabric-os-commands/9-2-x/Fabric-OS-Commands/zoneCreate.html>
+- Broadcom FOS 9.2.x defZone command reference: <https://techdocs.broadcom.com/us/en/fibre-channel-networking/fabric-os/fabric-os-commands/9-2-x/Fabric-OS-Commands/defZone.html>
+- Broadcom FOS 9.2.x Zone Configurations administration guide: <https://techdocs.broadcom.com/us/en/fibre-channel-networking/fabric-os/fabric-os-administration/9-2-x/Administering-Advanced-Zoning-AG/v26770788.html>
+- Broadcom FOS 9.2.x Setting the Default Zoning Mode: <https://techdocs.broadcom.com/us/en/fibre-channel-networking/fabric-os/fabric-os-administration/9-2-x/Administering-Advanced-Zoning-AG/v26772700.html>
+- Dell KB 000227366 — Enhanced Zone Object naming feature not supported: <https://www.dell.com/support/kbdoc/en-us/000227366/connectrix-brocade-unable-to-create-alias-zones-due-to-error-enhanced-zone-object-naming-feature-is-not-supported-by-the-fabric>
+- Cisco Smart Zoning technical note: <https://www.cisco.com/c/en/us/support/docs/storage-networking/zoning/116390-technote-smartzoning-00.html>
+- Cisco MDS NX-OS Release 9.2(2) Release Notes — device-alias 64 char ISSU blocker: <https://www.cisco.com/c/en/us/td/docs/dcn/mds9000/sw/9x/release-notes/cisco-mds-9000-nx-os-release-notes-922.html>
+- GitHub Cisco-SAN/ZoneMigrator — documented limitations (pwwn-only, Windows-only, FOS 7.x/8.x only): <https://github.com/Cisco-SAN/ZoneMigrator>
+- PenguinPunk.net — Brocade alias and zone syntax hyphen-stripping gotcha: <https://www.penguinpunk.net/blog/brocade-alias-and-zone-syntax-or-how-fos-is-a-love-hate-thing/>
+- Broadcom SAN Scalability Guidelines for Fabric OS 9.x: <https://docs.broadcom.com/doc/SAN-Scalability-FOS9x-UG>
+- Nick Tailor — Cisco vs Brocade SAN Switch Commands: <https://nicktailor.com/tech-blog/cisco-vs-brocade-san-switch-commands-explained-with-diagnostics-and-examples/>
+- Dell KB on Brocade cfgsave and cfgenable: <https://storagearea.network/how-to-save-brocade-zoning-configuration-cfgsave/>
+- Cisco Inter-VSAN Routing Configuration Guide, Release 9.x: <https://www.cisco.com/c/en/us/td/docs/dcn/mds9000/sw/9x/configuration/ivr/cisco-mds-9000-nx-os-ivr-configuration-guide-9x/basic_ivr.html>
 
 ---
 *Pitfalls research for: SAN zoning config conversion (Cisco MDS NX-OS to/from Brocade FOS)*

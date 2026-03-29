@@ -118,6 +118,7 @@
 | CLI-07 | Phase 1 | Complete |
 
 **Coverage:**
+
 - v1 requirements: 29 total
 - Mapped to phases: 29
 - Unmapped: 0 ✓

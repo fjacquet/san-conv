@@ -127,6 +127,7 @@ Each task was committed atomically:
 ### Auto-fixed Issues
 
 **1. [Rule 1 - Bug] Corrected golangci-lint tool directive module path**
+
 - **Found during:** Task 1 (go get -tool command)
 - **Issue:** Plan specified `github.com/golangci/golangci-lint/cmd/golangci-lint@v2.11.4` but this path fails because v2 uses the `/v2` major version module suffix required by Go module conventions
 - **Fix:** Used `github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.4` (correct v2 path)
@@ -135,6 +136,7 @@ Each task was committed atomically:
 - **Committed in:** 557dc61 (Task 1 commit)
 
 **2. [Rule 1 - Bug] Corrected goreleaser tool directive module path**
+
 - **Found during:** Task 1 (go get -tool command)
 - **Issue:** Plan specified `github.com/goreleaser/goreleaser@v2.14.3` but v2 requires `/v2` suffix
 - **Fix:** Used `github.com/goreleaser/goreleaser/v2@v2.14.3` (correct v2 path)
@@ -188,6 +190,7 @@ None - no external service configuration required.
 ## Self-Check: PASSED
 
 All files verified present:
+
 - go.mod, go.sum, main.go, cmd/root.go
 - internal/ir/zoningconfig.go
 - All 6 doc.go stubs (parser/mds, parser/brocade, validator, emitter/brocade, emitter/mds, converter)
@@ -195,5 +198,6 @@ All files verified present:
 - .planning/phases/01-foundation/01-01-SUMMARY.md
 
 All commits verified present:
+
 - 557dc61 (Task 1: Go module init)
 - 324b719 (Task 2: IR structs and package stubs)

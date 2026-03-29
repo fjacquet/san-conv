@@ -7,6 +7,7 @@ san-conv is built as a strict compiler pipeline: IR definition first, then parse
 ## Phases
 
 **Phase Numbering:**
+
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
@@ -23,10 +24,12 @@ Decimal phases appear between their surrounding integers in numeric order.
 ## Phase Details
 
 ### Phase 1: Foundation
+
 **Goal**: A compilable san-conv binary exists with the complete IR contract and both subcommands stubbed, unblocking all parallel parser and emitter work
 **Depends on**: Nothing (first phase)
 **Requirements**: CLI-07
 **Success Criteria** (what must be TRUE):
+
   1. `go build ./...` produces a single `san-conv` binary with no errors
   2. `san-conv mds2brocade --help` and `san-conv brocade2mds --help` both print flag help without panicking
   3. `internal/ir/zoningconfig.go` defines `ZoningConfig`, `Alias`, `Zone`, `ZoneMember`, and `ZoneConfig` structs that compile cleanly
@@ -35,14 +38,17 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
+
 - [x] 01-01-PLAN.md — Go module init, IR struct definitions, and empty internal sub-package stubs
 - [x] 01-02-PLAN.md — Cobra CLI skeleton (both subcommands stubbed), golangci-lint v2 config, goreleaser v2 config
 
 ### Phase 2: MDS Parser
+
 **Goal**: The MDS parser correctly reads any real NX-OS running-config and produces a fully populated IR struct, covering all alias types, all member types, multi-VSAN, and edge cases
 **Depends on**: Phase 1
 **Requirements**: PARSE-01, PARSE-02, PARSE-03, PARSE-04, PARSE-05, PARSE-06
 **Success Criteria** (what must be TRUE):
+
   1. Given a real NX-OS running-config with device-alias database, `mds2brocade` prints alias entries to IR without missing or duplicating any entry
   2. Given a multi-VSAN config, all VSANs are parsed and their zones are distinct in the IR (no cross-VSAN merge)
   3. Given a zone with a smart-zoning keyword (`init`/`target`/`both`), the member pWWN is kept and the keyword is stripped with a named warning
@@ -51,28 +57,34 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
+
 - [x] 02-01-PLAN.md — Six NX-OS test fixture files (TDD prerequisite: basic, enhanced_mode, multi_vsan, smart_zoning, unsupported, edge_cases)
 - [x] 02-02-PLAN.md — Two-pass MDS parser state machine (parser.go) and table-driven tests (parser_test.go)
 
 ### Phase 3: Brocade Parser
+
 **Goal**: The Brocade parser correctly reads both cfgshow output format and FOS CLI script format, auto-detecting the format, and produces a fully populated IR struct
 **Depends on**: Phase 1
 **Requirements**: PARSE-07, PARSE-08, PARSE-09
 **Success Criteria** (what must be TRUE):
+
   1. Given a Brocade cfgshow output with wrapped member lines (backslash continuation), all aliases, zones, and cfgs are parsed without truncation
   2. Given a FOS CLI script with `alicreate`, `zonecreate`, and `cfgcreate` commands, the parser produces IR equivalent to what cfgshow would produce for the same config
   3. Given either format as input, format auto-detection selects the correct parser without user-provided flags
 **Plans**: 2 plans
 
 Plans:
+
 - [x] 03-01-PLAN.md — Five Brocade test fixtures and parser_test.go (TDD red phase)
 - [x] 03-02-PLAN.md — Brocade parser implementation: cfgshow + CLI + auto-detection (TDD green phase)
 
 ### Phase 4: Validator and Sanitizer
+
 **Goal**: Every name in the IR that would produce invalid or silently broken Brocade output is caught, sanitized, and warned about before any emitter runs
 **Depends on**: Phase 2, Phase 3
 **Requirements**: SANI-01, SANI-02, SANI-03
 **Success Criteria** (what must be TRUE):
+
   1. Given an alias name longer than 63 characters, the tool truncates it and emits a warning showing the old name and the new name
   2. Given an alias name containing a hyphen (pre-8.1 mode), the hyphen is replaced with underscore and a per-name warning is emitted
   3. Given two MDS names that produce the same sanitized Brocade name, a collision warning is emitted listing all affected original names, and the output names are disambiguated
@@ -80,14 +92,17 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
+
 - [x] 04-01-PLAN.md — Table-driven sanitizer tests covering truncation, char replacement, collision detection, and cross-reference updates (TDD red phase)
 - [x] 04-02-PLAN.md — Sanitize() implementation making all tests pass: char replacement, truncation, collision disambiguation, map key rebuild (TDD green phase)
 
 ### Phase 5: Brocade Emitter
+
 **Goal**: The Brocade emitter produces correct, ready-to-apply FOS CLI commands from a validated IR, including mandatory security and persistence preamble/postamble
 **Depends on**: Phase 4
 **Requirements**: CONV-01, CONV-02, CONV-03, OUT-01, OUT-02
 **Success Criteria** (what must be TRUE):
+
   1. Given a populated IR, stdout contains `alicreate` commands for every alias, `zonecreate` for every zone, and `cfgcreate` for every cfg — in that order
   2. Every generated shell script starts with `defzone --noaccess` and ends with `cfgsave` with no option to omit either
   3. `cfgenable` appears in the generated script as a commented-out line with an explanatory comment, never as an executable statement
@@ -95,20 +110,24 @@ Plans:
 **Plans**: TBD
 
 ### Phase 6: MDS Emitter
+
 **Goal**: The MDS emitter produces correct NX-OS CLI commands from a validated IR for the brocade2mds direction
 **Depends on**: Phase 4
 **Requirements**: CONV-04, CONV-05, CONV-06, OUT-03
 **Success Criteria** (what must be TRUE):
+
   1. Given a Brocade IR, the emitter produces a `device-alias database` block with one `device-alias name X pwwn Y` line per alias
   2. Given a Brocade IR, the emitter produces `zone name X vsan 1` blocks with correct `member` lines for each zone
   3. Given a Brocade IR, the emitter produces a `zoneset name X vsan 1` block followed by `zoneset activate name X vsan 1`
 **Plans**: TBD
 
 ### Phase 7: CLI Wiring and Integration
+
 **Goal**: The complete san-conv pipeline is wired end-to-end with all user-facing flags operational, summary output to stderr, and a distributable cross-platform binary
 **Depends on**: Phase 5, Phase 6
 **Requirements**: CLI-01, CLI-02, CLI-03, CLI-04, CLI-05, CLI-06, OUT-04
 **Success Criteria** (what must be TRUE):
+
   1. `san-conv myconfig.txt` (positional argument) runs the default mds2brocade conversion and writes FOS commands to stdout
   2. `san-conv myconfig.txt --output result.txt --script result.sh` writes FOS commands to result.txt and a runnable script to result.sh
   3. After any conversion, stderr contains a summary line showing counts of objects converted, objects skipped, and warnings issued
