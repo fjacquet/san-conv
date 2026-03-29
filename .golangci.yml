@@ -1,0 +1,23 @@
+# golangci-lint v2 format — version key is REQUIRED
+# Docs: https://golangci-lint.run/docs/configuration/file/
+version: "2"
+
+linters:
+  # standard preset enables: errcheck, govet, ineffassign, staticcheck, unused
+  default: standard
+  enable:
+    - misspell
+
+formatters:
+  enable:
+    - gofmt
+
+run:
+  timeout: 5m
+  tests: true
+
+issues:
+  max-issues-per-linter: 50
+  max-same-issues: 3
+  exclude-dirs:
+    - vendor
