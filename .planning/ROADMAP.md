@@ -62,7 +62,11 @@ Plans:
   1. Given a Brocade cfgshow output with wrapped member lines (backslash continuation), all aliases, zones, and cfgs are parsed without truncation
   2. Given a FOS CLI script with `alicreate`, `zonecreate`, and `cfgcreate` commands, the parser produces IR equivalent to what cfgshow would produce for the same config
   3. Given either format as input, format auto-detection selects the correct parser without user-provided flags
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Five Brocade test fixtures and parser_test.go (TDD red phase)
+- [ ] 03-02-PLAN.md — Brocade parser implementation: cfgshow + CLI + auto-detection (TDD green phase)
 
 ### Phase 4: Validator and Sanitizer
 **Goal**: Every name in the IR that would produce invalid or silently broken Brocade output is caught, sanitized, and warned about before any emitter runs
@@ -117,8 +121,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 1/2 | Complete    | 2026-03-29 |
-| 2. MDS Parser | 2/2 | Complete   | 2026-03-29 |
-| 3. Brocade Parser | 0/TBD | Not started | - |
+| 2. MDS Parser | 2/2 | Complete    | 2026-03-29 |
+| 3. Brocade Parser | 0/2 | Not started | - |
 | 4. Validator and Sanitizer | 0/TBD | Not started | - |
 | 5. Brocade Emitter | 0/TBD | Not started | - |
 | 6. MDS Emitter | 0/TBD | Not started | - |
