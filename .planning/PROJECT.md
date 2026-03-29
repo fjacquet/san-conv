@@ -20,6 +20,11 @@ Given a full MDS running-config file, produce correct, ready-to-apply Brocade FO
 - [x] Convert zoneset (MDS) ↔ cfg (Brocade) — Validated in Phase 05: brocade-emitter (cfgcreate emission)
 - [x] Output Brocade FOS CLI commands (ready-to-paste) — Validated in Phase 05: brocade-emitter
 - [x] Output NX-OS CLI commands for brocade2mds direction — Validated in Phase 06: mds-emitter
+- [x] CLI flag `--direction mds2brocade|brocade2mds` — Validated in Phase 07: cli-wiring-and-integration
+- [x] `--output`, `--script`, `--fos-version` flags operational — Validated in Phase 07: cli-wiring-and-integration
+- [x] Flat invocation `san-conv myconfig.txt` works end-to-end — Validated in Phase 07: cli-wiring-and-integration
+- [x] stderr summary with object counts and warnings — Validated in Phase 07: cli-wiring-and-integration
+- [x] Exit 0 on warnings-only; non-zero on IO errors — Validated in Phase 07: cli-wiring-and-integration
 
 ### Active
 
@@ -87,4 +92,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-29 — Phase 06 complete: MDS NX-OS emitter implemented*
+*Last updated: 2026-03-29 — Phase 07 complete: CLI wired end-to-end, v1.0 milestone complete*
