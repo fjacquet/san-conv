@@ -173,3 +173,51 @@ func TestParse(t *testing.T) {
 		})
 	}
 }
+
+func TestParse_TerminalArtifacts(t *testing.T) {
+	t.Parallel()
+
+	// A capture where ANSI-wrapped --More-- prompts (followed by a bare CR)
+	// are glued onto the line after them — once before a device-alias entry,
+	// once before a zone member.
+	const captured = "device-alias database\r\n" +
+		"  device-alias name Host-A pwwn 20:00:00:00:c9:12:34:56\r\n" +
+		"\x1b[7m--More--\x1b[m\r  device-alias name Storage-A pwwn 50:06:01:65:3e:a0:1e:d7\r\n" +
+		"device-alias commit\r\n" +
+		"\r\n" +
+		"zone name App-Zone vsan 10\r\n" +
+		"  member device-alias Host-A\r\n" +
+		"\x1b[7m--More--\x1b[m\r  member device-alias Storage-A\r\n" +
+		"\r\n" +
+		"zoneset name ZS-VSAN10 vsan 10\r\n" +
+		"  member App-Zone\r\n"
+
+	cfg, err := Parse(strings.NewReader(captured))
+	require.NoError(t, err)
+
+	// The device-alias glued behind --More-- must survive.
+	require.Len(t, cfg.Aliases, 2, "both device-aliases must be parsed")
+	require.Equal(t, "50:06:01:65:3e:a0:1e:d7", cfg.Aliases["Storage-A"].PWWN)
+
+	// The zone member glued behind --More-- must survive.
+	zone, ok := cfg.Zones["App-Zone@vsan10"]
+	require.True(t, ok, "zone key 'App-Zone@vsan10' must exist")
+	require.Len(t, zone.Members, 2, "both zone members must be parsed")
+	require.Equal(t, "alias", zone.Members[1].Type)
+	require.Equal(t, "Storage-A", zone.Members[1].Value)
+}
+
+func TestParse_DoubledDeviceAliasDatabase(t *testing.T) {
+	t.Parallel()
+
+	f, err := os.Open(filepath.Join("..", "..", "..", "testdata", "mds", "doubled_device_alias.cfg"))
+	require.NoError(t, err)
+	defer f.Close() //nolint:errcheck
+
+	cfg, err := Parse(f)
+	require.NoError(t, err)
+	// The database is listed twice but the aliases are de-duplicated by name.
+	require.Len(t, cfg.Aliases, 2, "duplicate device-alias entries must collapse to 2 unique aliases")
+	require.Len(t, cfg.Zones, 1)
+	require.Len(t, cfg.ZoneConfigs, 1)
+}
