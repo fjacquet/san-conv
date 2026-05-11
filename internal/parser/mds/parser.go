@@ -1,13 +1,13 @@
 package mds
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"regexp"
 	"strings"
 
 	"github.com/fjacquet/san-conv/internal/ir"
+	"github.com/fjacquet/san-conv/internal/preprocess"
 )
 
 // Compiled regexes for all MDS NX-OS running-config constructs.
@@ -38,12 +38,8 @@ var (
 // *ir.ZoningConfig. Non-fatal issues are appended to cfg.Warnings.
 // Parse only returns an error for I/O failures.
 func Parse(r io.Reader) (*ir.ZoningConfig, error) {
-	scanner := bufio.NewScanner(r)
-	var lines []string
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-	}
-	if err := scanner.Err(); err != nil {
+	lines, err := preprocess.Clean(r)
+	if err != nil {
 		return nil, err
 	}
 
@@ -64,7 +60,7 @@ func Parse(r io.Reader) (*ir.ZoningConfig, error) {
 // populate cfg.Aliases.
 func pass1BuildAliases(lines []string, cfg *ir.ZoningConfig) {
 	const (
-		stateIdle        = iota
+		stateIdle = iota
 		stateDeviceAliasDB
 		stateFcAlias
 	)
@@ -127,7 +123,7 @@ func pass1BuildAliases(lines []string, cfg *ir.ZoningConfig) {
 // cfg.ZoneConfigs.
 func pass2BuildZones(lines []string, cfg *ir.ZoningConfig) {
 	const (
-		stateIdle     = iota
+		stateIdle = iota
 		stateZone
 		stateZoneset
 		stateIVRSkip
