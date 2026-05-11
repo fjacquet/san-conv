@@ -229,7 +229,7 @@ func TestParse_MultiVSANWarnings(t *testing.T) {
 		t.Parallel()
 		f, err := os.Open(filepath.Join("..", "..", "..", "testdata", "mds", "multi_vsan.cfg"))
 		require.NoError(t, err)
-		defer f.Close()
+		defer f.Close() //nolint:errcheck
 
 		cfg, err := Parse(f)
 		require.NoError(t, err)
@@ -245,7 +245,7 @@ func TestParse_MultiVSANWarnings(t *testing.T) {
 		t.Parallel()
 		f, err := os.Open(filepath.Join("..", "..", "..", "testdata", "mds", "multi_vsan_collision.cfg"))
 		require.NoError(t, err)
-		defer f.Close()
+		defer f.Close() //nolint:errcheck
 
 		cfg, err := Parse(f)
 		require.NoError(t, err)
