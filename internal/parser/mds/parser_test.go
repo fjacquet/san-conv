@@ -221,3 +221,57 @@ func TestParse_DoubledDeviceAliasDatabase(t *testing.T) {
 	require.Len(t, cfg.Zones, 1)
 	require.Len(t, cfg.ZoneConfigs, 1)
 }
+
+func TestParse_MultiVSANWarnings(t *testing.T) {
+	t.Parallel()
+
+	t.Run("breakdown warning on multi_vsan.cfg", func(t *testing.T) {
+		t.Parallel()
+		f, err := os.Open(filepath.Join("..", "..", "..", "testdata", "mds", "multi_vsan.cfg"))
+		require.NoError(t, err)
+		defer f.Close()
+
+		cfg, err := Parse(f)
+		require.NoError(t, err)
+		require.True(t, containsSubstr(cfg.Warnings, "multi-VSAN input:"),
+			"want a multi-VSAN breakdown warning, got: %v", cfg.Warnings)
+		require.True(t, containsSubstr(cfg.Warnings, "VSAN 10 (1 zones, 1 zonesets)"),
+			"want VSAN 10 counts in the breakdown, got: %v", cfg.Warnings)
+		require.True(t, containsSubstr(cfg.Warnings, "VSAN 20 (1 zones, 1 zonesets)"),
+			"want VSAN 20 counts in the breakdown, got: %v", cfg.Warnings)
+	})
+
+	t.Run("collision warning on multi_vsan_collision.cfg", func(t *testing.T) {
+		t.Parallel()
+		f, err := os.Open(filepath.Join("..", "..", "..", "testdata", "mds", "multi_vsan_collision.cfg"))
+		require.NoError(t, err)
+		defer f.Close()
+
+		cfg, err := Parse(f)
+		require.NoError(t, err)
+		require.True(t, containsSubstr(cfg.Warnings, `zone name "Shared" appears in VSAN 10 and VSAN 20`),
+			"want a cross-VSAN collision warning, got: %v", cfg.Warnings)
+		// The collision is reported exactly once even though both VSANs define "Shared".
+		count := 0
+		for _, w := range cfg.Warnings {
+			if strings.Contains(w, `zone name "Shared" appears in VSAN`) {
+				count++
+			}
+		}
+		require.Equal(t, 1, count, "collision must be warned exactly once")
+		// Both VSAN-scoped zones still exist in the IR.
+		_, ok10 := cfg.Zones["Shared@vsan10"]
+		_, ok20 := cfg.Zones["Shared@vsan20"]
+		require.True(t, ok10 && ok20, "both Shared@vsan10 and Shared@vsan20 must exist")
+	})
+}
+
+// containsSubstr reports whether any element of ss contains sub.
+func containsSubstr(ss []string, sub string) bool {
+	for _, s := range ss {
+		if strings.Contains(s, sub) {
+			return true
+		}
+	}
+	return false
+}

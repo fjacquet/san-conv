@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/fjacquet/san-conv/internal/ir"
@@ -132,7 +133,10 @@ func pass2BuildZones(lines []string, cfg *ir.ZoningConfig) {
 	state := stateIdle
 	var currentZone *ir.Zone
 	var currentZoneset *ir.ZoneConfig
-	seenVSANs := make(map[int]bool)
+	zoneCountByVSAN := make(map[int]int)
+	zonesetCountByVSAN := make(map[int]int)
+	zoneNameFirstVSAN := make(map[string]int)
+	collisionWarned := make(map[string]bool)
 
 	for _, line := range lines {
 		// CRITICAL ORDER: IVR must come before zone checks (IVR lines contain "zone name")
@@ -168,15 +172,16 @@ func pass2BuildZones(lines []string, cfg *ir.ZoningConfig) {
 			var vsan int
 			fmt.Sscanf(m[2], "%d", &vsan)
 
-			// Track VSANs for multi-VSAN warning
-			if !seenVSANs[vsan] {
-				seenVSANs[vsan] = true
-				if len(seenVSANs) == 2 {
-					cfg.Warnings = append(cfg.Warnings, fmt.Sprintf(
-						"multi-VSAN config detected (%d VSANs) — zones are VSAN-scoped; all converted to single Brocade fabric",
-						len(seenVSANs),
-					))
-				}
+			zoneCountByVSAN[vsan]++
+			if firstVSAN, seen := zoneNameFirstVSAN[name]; seen && firstVSAN != vsan && !collisionWarned[name] {
+				cfg.Warnings = append(cfg.Warnings, fmt.Sprintf(
+					"zone name %q appears in VSAN %d and VSAN %d — Brocade zone names are fabric-wide; the output will contain conflicting zonecreate lines for %q unless you scope with --vsan",
+					name, firstVSAN, vsan, name,
+				))
+				collisionWarned[name] = true
+			}
+			if _, seen := zoneNameFirstVSAN[name]; !seen {
+				zoneNameFirstVSAN[name] = vsan
 			}
 
 			key := fmt.Sprintf("%s@vsan%d", name, vsan)
@@ -201,16 +206,7 @@ func pass2BuildZones(lines []string, cfg *ir.ZoningConfig) {
 			var vsan int
 			fmt.Sscanf(m[2], "%d", &vsan)
 
-			// Track VSANs for multi-VSAN warning
-			if !seenVSANs[vsan] {
-				seenVSANs[vsan] = true
-				if len(seenVSANs) == 2 {
-					cfg.Warnings = append(cfg.Warnings, fmt.Sprintf(
-						"multi-VSAN config detected (%d VSANs) — zones are VSAN-scoped; all converted to single Brocade fabric",
-						len(seenVSANs),
-					))
-				}
-			}
+			zonesetCountByVSAN[vsan]++
 
 			key := fmt.Sprintf("%s@vsan%d", name, vsan)
 			zc := &ir.ZoneConfig{Name: name, VSAN: vsan}
@@ -244,6 +240,30 @@ func pass2BuildZones(lines []string, cfg *ir.ZoningConfig) {
 				currentZoneset.ZoneNames = append(currentZoneset.ZoneNames, m[1])
 			}
 		}
+	}
+
+	// Emit one multi-VSAN breakdown warning if the input spans more than one VSAN.
+	vsanSet := make(map[int]struct{})
+	for v := range zoneCountByVSAN {
+		vsanSet[v] = struct{}{}
+	}
+	for v := range zonesetCountByVSAN {
+		vsanSet[v] = struct{}{}
+	}
+	if len(vsanSet) > 1 {
+		vsans := make([]int, 0, len(vsanSet))
+		for v := range vsanSet {
+			vsans = append(vsans, v)
+		}
+		sort.Ints(vsans)
+		parts := make([]string, 0, len(vsans))
+		for _, v := range vsans {
+			parts = append(parts, fmt.Sprintf("VSAN %d (%d zones, %d zonesets)", v, zoneCountByVSAN[v], zonesetCountByVSAN[v]))
+		}
+		cfg.Warnings = append(cfg.Warnings, fmt.Sprintf(
+			"multi-VSAN input: %s — all merged into one Brocade fabric; pass --vsan N to scope to one",
+			strings.Join(parts, ", "),
+		))
 	}
 }
 
