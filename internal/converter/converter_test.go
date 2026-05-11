@@ -183,6 +183,41 @@ func TestRun_UnknownDirection_ReturnsError(t *testing.T) {
 	require.Error(t, err, "unknown direction must return a non-nil error")
 }
 
+// VSAN filter: only the requested VSAN's zones appear in the output.
+// Note: pre-8.1 sanitizer converts hyphens to underscores, so Zone-A → Zone_A.
+func TestRun_MDS2Brocade_VSANFilter(t *testing.T) {
+	t.Parallel()
+	var stdout, stderr bytes.Buffer
+	opts := Options{
+		InputFile:  "../../testdata/mds/multi_vsan.cfg",
+		Direction:  "mds2brocade",
+		FOSVersion: "pre-8.1",
+		VSAN:       10,
+	}
+	err := Run(opts, &stdout, &stderr)
+	require.NoError(t, err)
+	out := stdout.String()
+	require.Contains(t, out, "Zone_A", "VSAN 10 zone must be present (sanitized name)")
+	require.NotContains(t, out, "Zone_B", "VSAN 20 zone must be filtered out")
+	require.NotContains(t, out, "ZS_VSAN20", "VSAN 20 zoneset must be filtered out")
+}
+
+// VSAN filter with no matching VSAN: warns and produces no zones, no error.
+func TestRun_MDS2Brocade_VSANFilterNoMatch(t *testing.T) {
+	t.Parallel()
+	var stdout, stderr bytes.Buffer
+	opts := Options{
+		InputFile:  "../../testdata/mds/multi_vsan.cfg",
+		Direction:  "mds2brocade",
+		FOSVersion: "pre-8.1",
+		VSAN:       999,
+	}
+	err := Run(opts, &stdout, &stderr)
+	require.NoError(t, err)
+	require.Contains(t, stderr.String(), "--vsan 999 matched no zones")
+	require.NotContains(t, stdout.String(), "zonecreate")
+}
+
 // Test 10: stderr summary line format matches expected pattern.
 // Pattern: "Summary: N aliases, N zones, N configs converted; N warnings"
 func TestRun_StderrSummaryFormat(t *testing.T) {
