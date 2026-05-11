@@ -79,7 +79,7 @@ func Emit(cfg *ir.ZoningConfig, w io.Writer) error {
 				fmt.Fprintf(w, "  member device-alias %s\n", m.Value)
 			case "pwwn":
 				fmt.Fprintf(w, "  member pwwn %s\n", m.Value)
-			// "unsupported" members are silently skipped — already warned above or at parse time.
+				// "unsupported" members are silently skipped — already warned above or at parse time.
 			}
 		}
 		fmt.Fprintln(w)
