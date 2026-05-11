@@ -3,6 +3,7 @@ package brocade
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/fjacquet/san-conv/internal/ir"
@@ -168,4 +169,22 @@ func TestParse(t *testing.T) {
 			tt.checkFn(t, cfg)
 		})
 	}
+}
+
+func TestParse_TerminalArtifacts(t *testing.T) {
+	t.Parallel()
+
+	// A CLI-format Brocade script captured through a terminal: ANSI-wrapped
+	// --More-- prompt glued (via CR) onto the line after it.
+	const captured = "alicreate \"host_01\", \"10:00:00:00:c9:ab:cd:ef\"\r\n" +
+		"\x1b[7m--More--\x1b[m\ralicreate \"storage_01\", \"50:05:07:61:01:23:45:67\"\r\n" +
+		"zonecreate \"z1\", \"host_01;storage_01\"\r\n"
+
+	cfg, err := Parse(strings.NewReader(captured))
+	require.NoError(t, err)
+	require.Len(t, cfg.Aliases, 2, "both aliases must survive the --More-- prompt")
+	require.Equal(t, "10:00:00:00:c9:ab:cd:ef", cfg.Aliases["host_01"].PWWN)
+	require.Equal(t, "50:05:07:61:01:23:45:67", cfg.Aliases["storage_01"].PWWN)
+	require.Len(t, cfg.Zones, 1)
+	require.Len(t, cfg.Zones["z1"].Members, 2)
 }

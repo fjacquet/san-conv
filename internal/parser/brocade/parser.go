@@ -1,12 +1,12 @@
 package brocade
 
 import (
-	"bufio"
 	"io"
 	"regexp"
 	"strings"
 
 	"github.com/fjacquet/san-conv/internal/ir"
+	"github.com/fjacquet/san-conv/internal/preprocess"
 )
 
 // cfgshowState tracks the current parsing context inside parseCfgshowFormat.
@@ -44,12 +44,8 @@ var (
 // determines which sub-parser to use. Non-fatal issues are appended to
 // cfg.Warnings. Parse only returns an error for I/O failures.
 func Parse(r io.Reader) (*ir.ZoningConfig, error) {
-	scanner := bufio.NewScanner(r)
-	var lines []string
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-	}
-	if err := scanner.Err(); err != nil {
+	lines, err := preprocess.Clean(r)
+	if err != nil {
 		return nil, err
 	}
 
