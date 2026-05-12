@@ -52,7 +52,12 @@ func Emit(cfg *ir.ZoningConfig, w io.Writer, scriptMode bool) error {
 		for _, key := range zoneKeys {
 			zone := cfg.Zones[key]
 
-			// Build valid member list — skip unsupported members.
+			if zoneHasRole(zone) {
+				emitPeerZone(zone, cfg, w, emittedZones)
+				continue
+			}
+
+			// Plain zone — build valid member list, skipping unsupported members.
 			var members []string
 			for _, m := range zone.Members {
 				if m.Type == "unsupported" {
@@ -60,8 +65,6 @@ func Emit(cfg *ir.ZoningConfig, w io.Writer, scriptMode bool) error {
 				}
 				members = append(members, m.Value)
 			}
-
-			// Skip zones that have no valid FOS members after filtering.
 			if len(members) == 0 {
 				cfg.Warnings = append(cfg.Warnings, fmt.Sprintf(
 					"zone %q has no valid FOS members after filtering unsupported types — skipped",
@@ -69,7 +72,6 @@ func Emit(cfg *ir.ZoningConfig, w io.Writer, scriptMode bool) error {
 				))
 				continue
 			}
-
 			fmt.Fprintf(w, "zonecreate \"%s\", \"%s\"\n", zone.Name, strings.Join(members, ";"))
 			emittedZones[zone.Name] = true
 		}
@@ -111,6 +113,72 @@ func Emit(cfg *ir.ZoningConfig, w io.Writer, scriptMode bool) error {
 	}
 
 	return nil
+}
+
+// zoneHasRole reports whether any member of the zone carries a Cisco
+// smart-zoning role — in which case the zone is emitted as a Brocade peer zone.
+func zoneHasRole(zone *ir.Zone) bool {
+	for _, m := range zone.Members {
+		if m.Role != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// emitPeerZone renders a smart-zoned MDS zone as a Brocade peer zone:
+//
+//	target/both/(roleless) members → -principal,  init members → -members.
+//
+// 'both' and roleless members each get an informational warning. If no principal
+// members survive, it falls back to a plain zonecreate (with a warning); if no
+// members survive at all, the zone is skipped (with the standard warning).
+func emitPeerZone(zone *ir.Zone, cfg *ir.ZoningConfig, w io.Writer, emittedZones map[string]bool) {
+	var principal, nonPrincipal []string
+	for _, m := range zone.Members {
+		if m.Type == "unsupported" {
+			continue
+		}
+		switch m.Role {
+		case "init":
+			nonPrincipal = append(nonPrincipal, m.Value)
+		case "target":
+			principal = append(principal, m.Value)
+		case "both":
+			principal = append(principal, m.Value)
+			cfg.Warnings = append(cfg.Warnings, fmt.Sprintf(
+				"zone %q: smart-zoning role \"both\" on member %s → emitted as a peer-zone principal",
+				zone.Name, m.Value))
+		default: // "" — roleless member inside a smart-zoned zone
+			principal = append(principal, m.Value)
+			cfg.Warnings = append(cfg.Warnings, fmt.Sprintf(
+				"zone %q: member %s has no smart-zoning role → emitted as a peer-zone principal (over-permissive); review",
+				zone.Name, m.Value))
+		}
+	}
+
+	if len(principal) == 0 && len(nonPrincipal) == 0 {
+		cfg.Warnings = append(cfg.Warnings, fmt.Sprintf(
+			"zone %q has no valid FOS members after filtering unsupported types — skipped",
+			zone.Name))
+		return
+	}
+	if len(principal) == 0 {
+		// A peer zone requires at least one principal — fall back to a plain zone.
+		cfg.Warnings = append(cfg.Warnings, fmt.Sprintf(
+			"zone %q: peer zone has no principal members after resolution — emitted as a plain zone",
+			zone.Name))
+		fmt.Fprintf(w, "zonecreate \"%s\", \"%s\"\n", zone.Name, strings.Join(nonPrincipal, ";"))
+		emittedZones[zone.Name] = true
+		return
+	}
+
+	line := fmt.Sprintf("zonecreate --peerzone \"%s\" -principal \"%s\"", zone.Name, strings.Join(principal, ";"))
+	if len(nonPrincipal) > 0 {
+		line += fmt.Sprintf(" -members \"%s\"", strings.Join(nonPrincipal, ";"))
+	}
+	fmt.Fprintln(w, line)
+	emittedZones[zone.Name] = true
 }
 
 // sortedStringKeys returns the keys of any map[string]V in sorted order.
