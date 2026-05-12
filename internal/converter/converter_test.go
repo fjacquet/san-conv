@@ -252,6 +252,98 @@ func TestRun_MDS2Brocade_PeerZoneInitOnlyFallback(t *testing.T) {
 	require.Contains(t, stderr.String(), `zone "InitOnly": peer zone has no principal members after resolution`)
 }
 
+// --peer-consolidate: flat <init>_<target> zones collapse into per-target peer zones.
+func TestRun_MDS2Brocade_Consolidate(t *testing.T) {
+	t.Parallel()
+	var stdout, stderr bytes.Buffer
+	opts := Options{
+		InputFile:   "../../testdata/mds/flat_zones.cfg",
+		Direction:   "mds2brocade",
+		Consolidate: true,
+	}
+	err := Run(opts, &stdout, &stderr)
+	require.NoError(t, err)
+	out := stdout.String()
+	// TGT1 has 4 hosts (incl. ESX9 via the relaxed <host>_HBA0_<target> name), TGT2 has 2 → two peer zones.
+	require.Contains(t, out, `zonecreate --peerzone "TGT1_peerzone" -principal "TGT1" -members "ESX1;ESX2;ESX3;ESX9"`)
+	require.Contains(t, out, `zonecreate --peerzone "TGT2_peerzone" -principal "TGT2" -members "ESX1;ESX2"`)
+	// the original flat zones are gone, replaced — including the relaxed-matched one.
+	require.NotContains(t, out, `zonecreate "ESX1_TGT1"`)
+	require.NotContains(t, out, `zonecreate "ESX9_HBA0_TGT1"`)
+	// the _SRDF zone (name doesn't decompose / target not a trailing component) and the 3-member zone stay flat.
+	require.Contains(t, out, `zonecreate "RA1_RA2_SRDF", "RA1;RA2"`)
+	require.Contains(t, out, `zonecreate "ThreeWay", "ESX1;ESX2;TGT1"`)
+	// cfgcreate references the peer zones (deduped) and the un-consolidated zones.
+	require.Regexp(t, regexp.MustCompile(`cfgcreate "ZS", "[^"]*TGT1_peerzone[^"]*TGT2_peerzone[^"]*RA1_RA2_SRDF[^"]*ThreeWay"`), out)
+	// stderr has the summary line.
+	require.Contains(t, stderr.String(), "Consolidated 6 flat zones into 2 peer zones; 1 zone(s) left flat")
+}
+
+// --consolidate-strict requires an exact <host>_<target> name — relaxed matches are left flat.
+func TestRun_MDS2Brocade_ConsolidateStrict(t *testing.T) {
+	t.Parallel()
+	var stdout, stderr bytes.Buffer
+	opts := Options{
+		InputFile:         "../../testdata/mds/flat_zones.cfg",
+		Direction:         "mds2brocade",
+		Consolidate:       true,
+		ConsolidateStrict: true,
+	}
+	err := Run(opts, &stdout, &stderr)
+	require.NoError(t, err)
+	out := stdout.String()
+	// ESX9_HBA0_TGT1 doesn't decompose to ESX9_TGT1 → left flat under --consolidate-strict.
+	require.Contains(t, out, `zonecreate "ESX9_HBA0_TGT1", "ESX9;TGT1"`)
+	// so TGT1_peerzone keeps only the strictly-matched hosts.
+	require.Contains(t, out, `zonecreate --peerzone "TGT1_peerzone" -principal "TGT1" -members "ESX1;ESX2;ESX3"`)
+	require.Contains(t, out, `zonecreate --peerzone "TGT2_peerzone" -principal "TGT2" -members "ESX1;ESX2"`)
+	require.Contains(t, out, `zonecreate "RA1_RA2_SRDF", "RA1;RA2"`)
+	require.Contains(t, stderr.String(), "Consolidated 5 flat zones into 2 peer zones; 2 zone(s) left flat")
+}
+
+// --consolidate-report writes a non-empty report file.
+func TestRun_MDS2Brocade_ConsolidateReport(t *testing.T) {
+	t.Parallel()
+	reportFile := filepath.Join(t.TempDir(), "report.txt")
+	var stdout, stderr bytes.Buffer
+	opts := Options{
+		InputFile:         "../../testdata/mds/flat_zones.cfg",
+		Direction:         "mds2brocade",
+		Consolidate:       true,
+		ConsolidateReport: reportFile,
+	}
+	err := Run(opts, &stdout, &stderr)
+	require.NoError(t, err)
+	content, readErr := os.ReadFile(reportFile)
+	require.NoError(t, readErr)
+	require.Contains(t, string(content), "Peer zones created")
+	require.Contains(t, string(content), `peer zone "TGT1_peerzone"`)
+	require.Contains(t, string(content), "RA1_RA2_SRDF")
+}
+
+// Without --peer-consolidate, output is the plain flat zones (no peer zones).
+func TestRun_MDS2Brocade_NoConsolidateByDefault(t *testing.T) {
+	t.Parallel()
+	var stdout, stderr bytes.Buffer
+	opts := Options{InputFile: "../../testdata/mds/flat_zones.cfg", Direction: "mds2brocade"}
+	err := Run(opts, &stdout, &stderr)
+	require.NoError(t, err)
+	out := stdout.String()
+	require.NotContains(t, out, "--peerzone")
+	require.Contains(t, out, `zonecreate "ESX1_TGT1", "ESX1;TGT1"`)
+	require.NotContains(t, stderr.String(), "Consolidated")
+}
+
+// hygiene.Check runs on every conversion: a dangling alias reference is warned.
+func TestRun_HygieneDanglingRef(t *testing.T) {
+	t.Parallel()
+	var stdout, stderr bytes.Buffer
+	opts := Options{InputFile: "../../testdata/mds/dangling_ref.cfg", Direction: "mds2brocade"}
+	err := Run(opts, &stdout, &stderr)
+	require.NoError(t, err)
+	require.Contains(t, stderr.String(), `member alias "MissingTarget" is not defined — dangling reference`)
+}
+
 // Test 10: stderr summary line format matches expected pattern.
 // Pattern: "Summary: N aliases, N zones, N configs converted; N warnings"
 func TestRun_StderrSummaryFormat(t *testing.T) {

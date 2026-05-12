@@ -97,6 +97,9 @@ The script contains:
 | `--output` | | stdout | Write primary output to file |
 | `--script` | | (none) | Also write executable shell script (mds2brocade only) |
 | `--fos-version` | | `8.1+` | FOS naming rules: `8.1+` (default) or `pre-8.1` (legacy switches) |
+| `--peer-consolidate` | | false | Consolidate flat single-initiator/single-target zones into per-target Brocade peer zones (mds2brocade only; see --consolidate-report) |
+| `--consolidate-report` | | (none) | Write the peer-zone consolidation report to a file |
+| `--consolidate-strict` | | false | With `--peer-consolidate`: require an exact `<host>_<target>` zone name (default: also match when the target alias is a trailing component of the zone name) |
 
 ### `--fos-version` detail
 
@@ -161,6 +164,65 @@ zonecreate --peerzone "ZoneName" -principal "<targets>" -members "<initiators>"
 
 Peer-zone output requires **Fabric OS ≥ 7.4** on the target switch (peer zoning
 was introduced in FOS 7.4). It is emitted regardless of `--fos-version`.
+
+### Consolidating zones into peer zones
+
+By default the tool converts each Cisco zone to one Brocade zone — so a config
+with hundreds of flat single-initiator/single-target zones produces hundreds of
+`zonecreate` lines. `mds2brocade --peer-consolidate` instead collapses those
+into one **peer zone per storage port**:
+
+```
+zonecreate --peerzone "ArrayPort1_peerzone" -principal "ArrayPort1" -members "Host1;Host2;Host3;…"
+```
+
+How it decides which member of a flat zone is the target:
+
+- **Zone name.** The storage port is the member whose alias name forms the **end**
+  of the zone name — i.e. the zone name *is* the alias, or ends with `_<alias>` /
+  `-<alias>` (e.g. `…_GVAMAX01_FA1D04`, `…_alletra-swigva01-200-N0P1`). The other
+  member is the host. This works even when the host alias differs from the zone
+  name's leading part (`CLU151_HBA0_…` with host alias `CLU151`; `ESX-01_…` with
+  host alias `SWIGVA02-ESX-01`). Pass `--consolidate-strict` to require the
+  stricter exact `<host-alias>_<storage-alias>` form instead.
+- **Frequency check.** The inferred storage port must appear in at least two such
+  zones, and must not appear in fewer zones than the inferred host — otherwise
+  the zone is left as a plain `zonecreate` (the inference is treated as unsafe).
+
+Anything the tool can't classify confidently — zones where neither (or both) of
+the members is a trailing component of the name, zones with more than two
+members, zones using raw pWWNs, replication zones (e.g. `…_SRDF`), a storage port
+with only one host — is **left flat** and listed in the report. The original flat
+zones are removed from the output and `cfgcreate` is rebuilt to reference the new
+peer zones.
+
+Each peer zone is **one storage port plus the hosts zoned to it** — two storage
+ports (or two arrays) are never combined into one peer zone. Consolidation turns
+single-initiator/single-target zoning into single-target/multi-initiator (peer)
+zoning, which Broadcom recommends; the hosts in a peer zone still can't see each
+other. **Review the report before applying** — a summary line is printed to
+stderr (`Consolidated N flat zones into M peer zones; K zone(s) left flat`), and
+`--consolidate-report <file>` writes a full report: every peer zone with its
+principal, members, and the source zones it replaced, plus every zone that was
+left flat and why.
+
+Peer-zone output requires **Fabric OS ≥ 7.4** on the target switch (peer zoning
+was introduced in FOS 7.4). `--peer-consolidate` is off by default and is only
+available for `mds2brocade`.
+
+### Config hygiene warnings
+
+On every conversion the tool also flags a few common config problems (as `WARN:`
+lines on stderr — they don't stop the conversion):
+
+- a zone member referencing an alias that isn't defined anywhere — a **dangling
+  reference**
+- a zone with **no members**, or with a **single member** (nothing to talk to)
+- aliases that are **defined but never used** in any zone
+- zones that aren't referenced by **any zoneset**
+
+These are static checks against the config file — the tool has no view of the
+live fabric, so it can't tell you which devices are physically unplugged.
 
 ---
 

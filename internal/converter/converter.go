@@ -7,8 +7,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/fjacquet/san-conv/internal/consolidator"
 	brocadeemitter "github.com/fjacquet/san-conv/internal/emitter/brocade"
 	mdsemitter "github.com/fjacquet/san-conv/internal/emitter/mds"
+	"github.com/fjacquet/san-conv/internal/hygiene"
 	"github.com/fjacquet/san-conv/internal/ir"
 	brocadeparser "github.com/fjacquet/san-conv/internal/parser/brocade"
 	mdsparser "github.com/fjacquet/san-conv/internal/parser/mds"
@@ -23,6 +25,13 @@ type Options struct {
 	ScriptFile string
 	FOSVersion string
 	VSAN       int // when non-zero, convert only this VSAN's zones/zonesets (mds2brocade only)
+	// Consolidate, when true (mds2brocade only), collapses flat single-initiator/single-target zones into per-target peer zones.
+	Consolidate bool
+	// ConsolidateReport, if non-empty, is a path to write the consolidation verification report to.
+	ConsolidateReport string
+	// ConsolidateStrict, with Consolidate, requires an exact <host>_<target> zone name; the default
+	// also consolidates when the target alias is a trailing component of the zone name.
+	ConsolidateStrict bool
 }
 
 // Run executes the full conversion pipeline: parse → validate → emit.
@@ -57,9 +66,28 @@ func Run(opts Options, stdout io.Writer, stderr io.Writer) error {
 		return fmt.Errorf("unknown direction %q (use mds2brocade or brocade2mds)", opts.Direction)
 	}
 
+	// Step 2a: Run hygiene checks unconditionally — appends warnings to cfg.
+	hygiene.Check(cfg)
+
 	// Step 2b: Optionally scope to a single VSAN (mds2brocade only).
 	if opts.Direction == "mds2brocade" && opts.VSAN != 0 {
 		filterVSAN(cfg, opts.VSAN)
+	}
+
+	// Step 2c: Optionally consolidate flat zones into per-target peer zones (mds2brocade only).
+	if opts.Direction == "mds2brocade" && opts.Consolidate {
+		report := consolidator.Consolidate(cfg, opts.ConsolidateStrict)
+		consolidated := 0
+		for _, pz := range report.PeerZones {
+			consolidated += len(pz.SourceZones)
+		}
+		fmt.Fprintf(stderr, "Consolidated %d flat zones into %d peer zones; %d zone(s) left flat\n",
+			consolidated, len(report.PeerZones), len(report.Skipped))
+		if opts.ConsolidateReport != "" {
+			if err := writeConsolidateReport(opts.ConsolidateReport, report); err != nil {
+				return fmt.Errorf("write consolidate report %q: %w", opts.ConsolidateReport, err)
+			}
+		}
 	}
 
 	// Step 3: Sanitize ONLY for mds2brocade direction.
@@ -115,6 +143,42 @@ func Run(opts Options, stdout io.Writer, stderr io.Writer) error {
 	fmt.Fprintf(stderr, "Summary: %d aliases, %d zones, %d configs converted; %d warnings\n",
 		len(cfg.Aliases), len(cfg.Zones), len(cfg.ZoneConfigs), len(cfg.Warnings))
 
+	return nil
+}
+
+// writeConsolidateReport writes a human-readable consolidation report to path.
+func writeConsolidateReport(path string, report consolidator.Report) error {
+	f, err := os.Create(path) //nolint:gosec // path is an operator-supplied CLI argument
+	if err != nil {
+		return err
+	}
+	defer f.Close() //nolint:errcheck
+
+	fmt.Fprintln(f, "# Peer-zone consolidation report")
+	fmt.Fprintln(f)
+	fmt.Fprintln(f, "# Each peer zone below is ONE storage port (the -principal member) plus the hosts")
+	fmt.Fprintln(f, "# zoned to it — two storage ports / arrays are never combined into one peer zone.")
+	fmt.Fprintln(f, "# This turns single-initiator/single-target zoning into single-target/multi-initiator")
+	fmt.Fprintln(f, "# (peer) zoning, which Broadcom recommends and which keeps hosts isolated from one")
+	fmt.Fprintln(f, "# another. Review before applying.")
+	fmt.Fprintln(f)
+	fmt.Fprintf(f, "## Peer zones created (%d)\n\n", len(report.PeerZones))
+	if len(report.PeerZones) == 0 {
+		fmt.Fprintln(f, "(none)")
+	}
+	for _, pz := range report.PeerZones {
+		fmt.Fprintf(f, "peer zone %q (VSAN %d)\n", pz.PeerName, pz.VSAN)
+		fmt.Fprintf(f, "  principal: %s\n", pz.Target)
+		fmt.Fprintf(f, "  members:   %s\n", strings.Join(pz.Members, ", "))
+		fmt.Fprintf(f, "  collapsed %d flat zone(s): %s\n\n", len(pz.SourceZones), strings.Join(pz.SourceZones, ", "))
+	}
+	fmt.Fprintf(f, "## Zones left flat (%d)\n\n", len(report.Skipped))
+	if len(report.Skipped) == 0 {
+		fmt.Fprintln(f, "(none)")
+	}
+	for _, s := range report.Skipped {
+		fmt.Fprintf(f, "%s — %s\n", s.Name, s.Reason)
+	}
 	return nil
 }
 
