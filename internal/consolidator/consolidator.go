@@ -1,10 +1,13 @@
 // Package consolidator collapses flat single-initiator/single-target zones into
-// per-target Brocade peer zones. It infers which member is the target and which
-// is the initiator by decomposing the zone name (<init>_<target> or
-// <target>_<init>) and by cross-zone member frequency (the target alias appears
-// in more candidate zones than the initiator). Zones it cannot classify
-// confidently are left flat and recorded in Report.Skipped. All mutations are
-// applied in-place to the supplied *ir.ZoningConfig.
+// per-target Brocade peer zones. It infers which member is the target by the
+// zone name: by default the target is whichever member alias is a trailing
+// component of the zone name (e.g. "..._GVAMAX01_FA1D04"), the other member
+// being the initiator; in strict mode the zone name must be exactly
+// <init>_<target> or <target>_<init>. A cross-zone member-frequency veto then
+// rejects classifications where the inferred target appears in fewer zones than
+// the inferred initiator, or in too few zones to be worth consolidating. Zones
+// it cannot classify confidently are left flat and recorded in Report.Skipped.
+// All mutations are applied in-place to the supplied *ir.ZoningConfig.
 package consolidator
 
 import (
@@ -46,10 +49,13 @@ type consolidatable struct {
 
 // Consolidate collapses flat single-initiator/single-target zones in cfg into
 // per-target Brocade peer zones, mutating cfg in place, and returns a Report.
-// Zones it cannot confidently classify, and zones that aren't 2-member
-// alias-membered roleless zones, are left untouched (the 2-member ones are
-// recorded in Report.Skipped with a reason).
-func Consolidate(cfg *ir.ZoningConfig) Report {
+// When strict is false (the default), the target is identified as the member
+// alias that is a trailing component of the zone name; when strict is true, the
+// zone name must be exactly <init>_<target> or <target>_<init>. Zones it cannot
+// confidently classify, and zones that aren't 2-member alias-membered roleless
+// zones, are left untouched (the 2-member ones are recorded in Report.Skipped
+// with a reason).
+func Consolidate(cfg *ir.ZoningConfig, strict bool) Report {
 	// ── Step 1: collect candidate zone keys in deterministic order ────────────
 	allKeys := make([]string, 0, len(cfg.Zones))
 	for k := range cfg.Zones {
@@ -96,16 +102,19 @@ func Consolidate(cfg *ir.ZoningConfig) Report {
 			continue
 		}
 
-		// Name decomposition — try strict then case-insensitive.
-		initMember, targetMember, ok := decomposeZoneName(z.Name, a, b)
+		// Name decomposition (trailing-component, or strict).
+		initMember, targetMember, ok := decomposeZoneName(z.Name, a, b, strict)
 		if !ok {
-			skipped = append(skipped, SkippedZone{
-				Name: z.Name,
-				Reason: fmt.Sprintf(
-					"zone name does not decompose to its two members (%s_%s / %s_%s)",
-					a, b, b, a,
-				),
-			})
+			var reason string
+			switch {
+			case strict:
+				reason = fmt.Sprintf("zone name is not exactly %s_%s or %s_%s (--consolidate-strict)", a, b, b, a)
+			case isTrailComponent(z.Name, a) && isTrailComponent(z.Name, b):
+				reason = "both members are a trailing component of the zone name — cannot infer the target"
+			default:
+				reason = fmt.Sprintf("neither member (%s, %s) is a trailing component of the zone name — cannot infer the target", a, b)
+			}
+			skipped = append(skipped, SkippedZone{Name: z.Name, Reason: reason})
 			continue
 		}
 
@@ -284,34 +293,61 @@ func isCandidate(z *ir.Zone) bool {
 	return true
 }
 
-// decomposeZoneName tries to match zoneName == a+"_"+b or zoneName == b+"_"+a,
-// first strictly, then case-insensitively. Returns (init, target, true) on
-// success where the concatenation order is init+"_"+target.
-func decomposeZoneName(zoneName, a, b string) (init, target string, ok bool) {
-	// Strict match.
-	strictAB := (zoneName == a+"_"+b)
-	strictBA := (zoneName == b+"_"+a)
-	if strictAB && !strictBA {
-		return a, b, true
-	}
-	if strictBA && !strictAB {
-		return b, a, true
-	}
-	// Both strict match: only possible if a == b (already excluded upstream).
-	if strictAB && strictBA {
+// decomposeZoneName infers (initiator, target) for a 2-member zone from its
+// name and its two member alias names a, b. Returns ok=false when it can't tell.
+//
+// strict mode: the zone name must be exactly a+"_"+b or b+"_"+a (case-fold
+// equality is tried as a fallback). Anything else → no verdict.
+//
+// relaxed mode (default): the target is whichever member is a *trailing
+// component* of the zone name (see isTrailComponent); the other member is the
+// initiator. If exactly one member qualifies → that classification; if both
+// (ambiguous) or neither → no verdict. This subsumes the strict <init>_<target>
+// case (there, the target is the trailing component and the initiator is not).
+func decomposeZoneName(zoneName, a, b string, strict bool) (init, target string, ok bool) {
+	if strict {
+		strictAB := zoneName == a+"_"+b
+		strictBA := zoneName == b+"_"+a
+		if strictAB && !strictBA {
+			return a, b, true
+		}
+		if strictBA && !strictAB {
+			return b, a, true
+		}
+		if strictAB && strictBA {
+			return "", "", false // only if a == b, excluded upstream
+		}
+		lower := strings.ToLower(zoneName)
+		foldAB := lower == strings.ToLower(a+"_"+b)
+		foldBA := lower == strings.ToLower(b+"_"+a)
+		if foldAB && !foldBA {
+			return a, b, true
+		}
+		if foldBA && !foldAB {
+			return b, a, true
+		}
 		return "", "", false
 	}
 
-	// Case-insensitive match.
-	lower := strings.ToLower(zoneName)
-	foldAB := (lower == strings.ToLower(a+"_"+b))
-	foldBA := (lower == strings.ToLower(b+"_"+a))
-	if foldAB && !foldBA {
+	// Relaxed: target = the member that is a trailing component of the name.
+	ta := isTrailComponent(zoneName, a)
+	tb := isTrailComponent(zoneName, b)
+	if ta && !tb {
+		return b, a, true // a is the trailing component → a is the target
+	}
+	if tb && !ta {
 		return a, b, true
 	}
-	if foldBA && !foldAB {
-		return b, a, true
-	}
+	return "", "", false // both (ambiguous) or neither
+}
 
-	return "", "", false
+// isTrailComponent reports whether comp forms a whole trailing component of
+// name: name == comp, or name ends with "_"+comp or "-"+comp. A case-fold
+// comparison is tried as a fallback.
+func isTrailComponent(name, comp string) bool {
+	if name == comp || strings.HasSuffix(name, "_"+comp) || strings.HasSuffix(name, "-"+comp) {
+		return true
+	}
+	ln, lc := strings.ToLower(name), strings.ToLower(comp)
+	return ln == lc || strings.HasSuffix(ln, "_"+lc) || strings.HasSuffix(ln, "-"+lc)
 }

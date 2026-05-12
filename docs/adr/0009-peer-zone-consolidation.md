@@ -49,22 +49,34 @@ When the flag is set, after VSAN filtering and before name sanitization, a
 consolidator pass groups eligible flat zones by inferred target and emits one
 peer zone per target.
 
-**Candidate criteria** (a zone must meet all four to be eligible):
+**Candidate criteria** (a zone must meet all three to be eligible):
 
 1. Exactly 2 members
 2. Both members are alias references (not raw pWWNs)
 3. Neither member carries a smart-zoning role (they would already be handled by
    the B1 path)
-4. The zone name decomposes as `<alias-A>_<alias-B>` where `alias-A` and
-   `alias-B` are the exact two members (zone-name decomposition)
+
+(A candidate zone is then either classified and consolidated, or recorded as
+"left flat" with a reason — see the inference heuristic.)
 
 **Inference heuristic:**
 
-- **Primary (zone-name decomposition):** a zone named `<X>_<Y>` whose two
-  members are exactly `X` and `Y` is read as: `X` = initiator, `Y` = target.
-  This is deterministic for configs that follow the `<init>_<target>` naming
-  convention. Zones whose names do not decompose this way are immediately left
-  flat.
+- **Primary (zone-name → target):** by default, the **target** is whichever of
+  the two member aliases is a *trailing component* of the zone name — i.e. the
+  zone name equals the alias, or ends with `_<alias>` or `-<alias>`. The other
+  member is the initiator. (Case-folded matching is tried as a fallback.) In
+  real configs the target alias is consistently a name suffix
+  (`…_GVAMAX01_FA1D04`, `…_alletra-swigva01-200-N0P1`), even when the host
+  alias has drifted from the zone name's leading part (`CLU151_HBA0_…` whose
+  host alias is just `CLU151`, or `ESX-01_…` whose host alias is
+  `SWIGVA02-ESX-01`). If exactly one member is a trailing component, that's the
+  target; if both (ambiguous) or neither, the zone is left flat. This subsumes
+  the strict `<init>_<target>` case (there, the target is the trailing component
+  and the initiator is not).
+  - `--consolidate-strict` reverts this to the original behavior: the zone name
+    must be **exactly** `<init>_<target>` or `<target>_<init>`; anything else is
+    left flat. (Use this when the relaxed rule would over-match a particular
+    config; the relaxed default is the right choice for the common `<host>_…_<target>` shapes.)
 - **Frequency veto:** among all candidate zones, count how many zones each alias
   appears in as the inferred target. A zone's inferred target must satisfy:
   `freq(target) ≥ 2` AND `freq(target) ≥ freq(initiator)`. If either condition
@@ -121,12 +133,28 @@ live fabric and cannot detect physically unconnected or logged-out devices.
   silently drop production paths after the config is applied. The default-off
   posture, the frequency veto, and the per-zone report collectively ensure an
   engineer reviews every inference before applying the output.
-- **Two signals, name first:** the customer data establishes `<init>_<target>`
-  naming as a convention, so zone-name decomposition is deterministic and exact
-  for the vast majority of zones. The frequency check is a veto, not a
-  classifier — a zone whose name does not decompose is left flat rather than
-  classified by frequency alone, which prevents false positives in edge cases
-  (replication pairs like `RA1_RA2_SRDF`, test zones, and so on).
+- **Two signals, name first:** the customer data establishes that the target
+  alias is consistently a *trailing component* of the zone name, so deriving the
+  target from the name is deterministic for the vast majority of zones (~530 of
+  532 not strictly-named zones in one fabric; the 2 misses are `…_SRDF`
+  replication pairs, which should stay flat). The frequency check is a veto, not
+  a classifier — a zone whose name doesn't yield a target is left flat rather
+  than classified by frequency alone, which prevents false positives in edge
+  cases (replication pairs like `RA1_RA2_SRDF`, test zones, target-first naming).
+  `--consolidate-strict` is available for the rare config where even the
+  trailing-component rule over-matches.
+- **Best-practices basis:** "one peer zone per storage port" is the
+  Broadcom-recommended pattern — *"Whenever possible, peer zones are recommended
+  instead of other zoning schemes such as single-initiator, one-to-many, or flat
+  zoning"* (Fabric OS Administration Guide, *Peer Zoning*), and *"typically a
+  peer zone has a single principal device and one or more non-principal
+  devices."* Consolidation **never** combines two storage ports / arrays into one
+  peer zone — it groups strictly by target, so each peer zone has exactly one
+  principal. Within a peer zone the fabric blocks non-principal↔non-principal
+  traffic, so the hosts stay isolated from each other — the same guarantee
+  single-initiator zoning gives. What changes is the *model* (single-initiator/
+  single-target → single-target/multi-initiator), which is precisely why
+  `--peer-consolidate` is opt-in and emits the verification report.
 - **Replace, don't add:** the point of consolidation is to shrink zone count.
   Keeping both the original flat zones and the new peer zones in the output would
   be redundant and confusing. The flat zones are removed; `cfgcreate` is
@@ -149,11 +177,15 @@ live fabric and cannot detect physically unconnected or logged-out devices.
 - New flags on `mds2brocade` and the root command (not `brocade2mds`):
   - `--peer-consolidate` (bool, default false)
   - `--consolidate-report <file>` (string, default "")
-- `Options` struct gains `Consolidate bool` and `ConsolidateReport string`
-  fields.
+  - `--consolidate-strict` (bool, default false) — reverts to exact
+    `<init>_<target>` zone-name matching
+- `Options` struct gains `Consolidate bool`, `ConsolidateReport string`, and
+  `ConsolidateStrict bool` fields.
+- `consolidator.Consolidate` takes a `strict bool` parameter:
+  `Consolidate(cfg *ir.ZoningConfig, strict bool) Report`.
 - `converter.Run` calls `hygiene.Check` unconditionally (after parse, after VSAN
-  filter) and calls `consolidator.Consolidate` when `Options.Consolidate` is
-  true (after VSAN filtering, before name sanitization).
+  filter) and calls `consolidator.Consolidate(cfg, opts.ConsolidateStrict)` when
+  `Options.Consolidate` is true (after VSAN filtering, before name sanitization).
 - The Brocade emitter is unchanged — B1's `emitPeerZone` renders consolidator
   output without modification.
 - `brocade2mds` is unaffected.

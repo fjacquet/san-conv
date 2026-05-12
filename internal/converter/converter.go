@@ -29,6 +29,9 @@ type Options struct {
 	Consolidate bool
 	// ConsolidateReport, if non-empty, is a path to write the consolidation verification report to.
 	ConsolidateReport string
+	// ConsolidateStrict, with Consolidate, requires an exact <host>_<target> zone name; the default
+	// also consolidates when the target alias is a trailing component of the zone name.
+	ConsolidateStrict bool
 }
 
 // Run executes the full conversion pipeline: parse → validate → emit.
@@ -73,7 +76,7 @@ func Run(opts Options, stdout io.Writer, stderr io.Writer) error {
 
 	// Step 2c: Optionally consolidate flat zones into per-target peer zones (mds2brocade only).
 	if opts.Direction == "mds2brocade" && opts.Consolidate {
-		report := consolidator.Consolidate(cfg)
+		report := consolidator.Consolidate(cfg, opts.ConsolidateStrict)
 		consolidated := 0
 		for _, pz := range report.PeerZones {
 			consolidated += len(pz.SourceZones)
@@ -152,6 +155,12 @@ func writeConsolidateReport(path string, report consolidator.Report) error {
 	defer f.Close() //nolint:errcheck
 
 	fmt.Fprintln(f, "# Peer-zone consolidation report")
+	fmt.Fprintln(f)
+	fmt.Fprintln(f, "# Each peer zone below is ONE storage port (the -principal member) plus the hosts")
+	fmt.Fprintln(f, "# zoned to it — two storage ports / arrays are never combined into one peer zone.")
+	fmt.Fprintln(f, "# This turns single-initiator/single-target zoning into single-target/multi-initiator")
+	fmt.Fprintln(f, "# (peer) zoning, which Broadcom recommends and which keeps hosts isolated from one")
+	fmt.Fprintln(f, "# another. Review before applying.")
 	fmt.Fprintln(f)
 	fmt.Fprintf(f, "## Peer zones created (%d)\n\n", len(report.PeerZones))
 	if len(report.PeerZones) == 0 {

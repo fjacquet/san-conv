@@ -264,18 +264,41 @@ func TestRun_MDS2Brocade_Consolidate(t *testing.T) {
 	err := Run(opts, &stdout, &stderr)
 	require.NoError(t, err)
 	out := stdout.String()
-	// TGT1 had 3 hosts, TGT2 had 2 → two peer zones.
-	require.Contains(t, out, `zonecreate --peerzone "TGT1_peerzone" -principal "TGT1" -members "ESX1;ESX2;ESX3"`)
+	// TGT1 has 4 hosts (incl. ESX9 via the relaxed <host>_HBA0_<target> name), TGT2 has 2 → two peer zones.
+	require.Contains(t, out, `zonecreate --peerzone "TGT1_peerzone" -principal "TGT1" -members "ESX1;ESX2;ESX3;ESX9"`)
 	require.Contains(t, out, `zonecreate --peerzone "TGT2_peerzone" -principal "TGT2" -members "ESX1;ESX2"`)
-	// the original flat zones are gone, replaced.
+	// the original flat zones are gone, replaced — including the relaxed-matched one.
 	require.NotContains(t, out, `zonecreate "ESX1_TGT1"`)
-	// the _SRDF zone (name doesn't decompose) and the 3-member zone stay flat.
+	require.NotContains(t, out, `zonecreate "ESX9_HBA0_TGT1"`)
+	// the _SRDF zone (name doesn't decompose / target not a trailing component) and the 3-member zone stay flat.
 	require.Contains(t, out, `zonecreate "RA1_RA2_SRDF", "RA1;RA2"`)
 	require.Contains(t, out, `zonecreate "ThreeWay", "ESX1;ESX2;TGT1"`)
 	// cfgcreate references the peer zones (deduped) and the un-consolidated zones.
 	require.Regexp(t, regexp.MustCompile(`cfgcreate "ZS", "[^"]*TGT1_peerzone[^"]*TGT2_peerzone[^"]*RA1_RA2_SRDF[^"]*ThreeWay"`), out)
 	// stderr has the summary line.
-	require.Contains(t, stderr.String(), "Consolidated 5 flat zones into 2 peer zones; 1 zone(s) left flat")
+	require.Contains(t, stderr.String(), "Consolidated 6 flat zones into 2 peer zones; 1 zone(s) left flat")
+}
+
+// --consolidate-strict requires an exact <host>_<target> name — relaxed matches are left flat.
+func TestRun_MDS2Brocade_ConsolidateStrict(t *testing.T) {
+	t.Parallel()
+	var stdout, stderr bytes.Buffer
+	opts := Options{
+		InputFile:         "../../testdata/mds/flat_zones.cfg",
+		Direction:         "mds2brocade",
+		Consolidate:       true,
+		ConsolidateStrict: true,
+	}
+	err := Run(opts, &stdout, &stderr)
+	require.NoError(t, err)
+	out := stdout.String()
+	// ESX9_HBA0_TGT1 doesn't decompose to ESX9_TGT1 → left flat under --consolidate-strict.
+	require.Contains(t, out, `zonecreate "ESX9_HBA0_TGT1", "ESX9;TGT1"`)
+	// so TGT1_peerzone keeps only the strictly-matched hosts.
+	require.Contains(t, out, `zonecreate --peerzone "TGT1_peerzone" -principal "TGT1" -members "ESX1;ESX2;ESX3"`)
+	require.Contains(t, out, `zonecreate --peerzone "TGT2_peerzone" -principal "TGT2" -members "ESX1;ESX2"`)
+	require.Contains(t, out, `zonecreate "RA1_RA2_SRDF", "RA1;RA2"`)
+	require.Contains(t, stderr.String(), "Consolidated 5 flat zones into 2 peer zones; 2 zone(s) left flat")
 }
 
 // --consolidate-report writes a non-empty report file.

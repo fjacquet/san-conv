@@ -24,6 +24,7 @@ Reverse direction: brocade2mds (FOS cfgshow/script to NX-OS CLI commands)`,
 		vsan, _ := cmd.Flags().GetInt("vsan")
 		consolidate, _ := cmd.Flags().GetBool("peer-consolidate")
 		consolidateReport, _ := cmd.Flags().GetString("consolidate-report")
+		consolidateStrict, _ := cmd.Flags().GetBool("consolidate-strict")
 		return converter.Run(converter.Options{
 			InputFile:         args[0],
 			Direction:         direction,
@@ -33,6 +34,7 @@ Reverse direction: brocade2mds (FOS cfgshow/script to NX-OS CLI commands)`,
 			VSAN:              vsan,
 			Consolidate:       consolidate,
 			ConsolidateReport: consolidateReport,
+			ConsolidateStrict: consolidateStrict,
 		}, os.Stdout, os.Stderr)
 	},
 }
@@ -58,4 +60,5 @@ func init() {
 	rootCmd.Flags().Int("vsan", 0, "target VSAN to convert; 0 = convert all VSANs into one fabric")
 	rootCmd.Flags().Bool("peer-consolidate", false, "consolidate flat single-initiator/single-target zones into per-target Brocade peer zones (inferred — review with --consolidate-report)")
 	rootCmd.Flags().String("consolidate-report", "", "write the peer-zone consolidation report to this file")
+	rootCmd.Flags().Bool("consolidate-strict", false, "with --peer-consolidate: require an exact <host>_<target> zone name (default: also consolidate when the target alias is a trailing component of the zone name)")
 }

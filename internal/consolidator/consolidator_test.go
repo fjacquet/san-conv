@@ -41,7 +41,7 @@ func TestConsolidate_HappyPath(t *testing.T) {
 		"ESX3_TGT1@vsan10": flatZone("ESX3_TGT1", 10, "ESX3", "TGT1"),
 	})
 
-	report := Consolidate(cfg)
+	report := Consolidate(cfg, false)
 
 	// Source zones must be removed.
 	require.NotContains(t, cfg.Zones, "ESX1_TGT1@vsan10")
@@ -102,7 +102,7 @@ func TestConsolidate_ZoneConfigsRewrite(t *testing.T) {
 		ZoneNames: []string{"ESX1_TGT1", "ESX2_TGT1", "SomeOtherZone"},
 	}
 
-	Consolidate(cfg)
+	Consolidate(cfg, false)
 
 	zc := cfg.ZoneConfigs["cfg1@vsan10"]
 	require.NotNil(t, zc)
@@ -121,7 +121,7 @@ func TestConsolidate_SingleHost_LeftFlat(t *testing.T) {
 		"ESX1_TGT9@vsan10": flatZone("ESX1_TGT9", 10, "ESX1", "TGT9"),
 	})
 
-	report := Consolidate(cfg)
+	report := Consolidate(cfg, false)
 
 	// Source zone must remain.
 	require.Contains(t, cfg.Zones, "ESX1_TGT9@vsan10")
@@ -148,13 +148,13 @@ func TestConsolidate_NameDoesNotDecompose(t *testing.T) {
 		"RA1_RA2_SRDF@vsan10": flatZone("RA1_RA2_SRDF", 10, "RA1", "RA2"),
 	})
 
-	report := Consolidate(cfg)
+	report := Consolidate(cfg, false)
 
 	require.Contains(t, cfg.Zones, "RA1_RA2_SRDF@vsan10")
 	require.Empty(t, report.PeerZones)
 	require.Len(t, report.Skipped, 1)
 	require.Equal(t, "RA1_RA2_SRDF", report.Skipped[0].Name)
-	require.Contains(t, report.Skipped[0].Reason, "does not decompose")
+	require.Contains(t, report.Skipped[0].Reason, "trailing component")
 }
 
 // ─── Frequency veto — target too infrequent ───────────────────────────────────
@@ -177,7 +177,7 @@ func TestConsolidate_FrequencyVeto_TargetTooInfrequent(t *testing.T) {
 	}
 	cfg := buildCfg(zones)
 
-	report := Consolidate(cfg)
+	report := Consolidate(cfg, false)
 
 	// BIG_small must be left flat (frequency veto on "small").
 	require.Contains(t, cfg.Zones, "BIG_small@vsan10")
@@ -239,7 +239,7 @@ func TestConsolidate_NonCandidates_Untouched(t *testing.T) {
 		},
 	})
 
-	report := Consolidate(cfg)
+	report := Consolidate(cfg, false)
 
 	// All four zones still present.
 	require.Contains(t, cfg.Zones, "3member@vsan10")
@@ -267,8 +267,8 @@ func TestConsolidate_Determinism(t *testing.T) {
 		})
 	}
 
-	r1 := Consolidate(buildInput())
-	r2 := Consolidate(buildInput())
+	r1 := Consolidate(buildInput(), false)
+	r2 := Consolidate(buildInput(), false)
 
 	require.Equal(t, r1.PeerZones, r2.PeerZones)
 	require.Equal(t, r1.Skipped, r2.Skipped)
@@ -279,9 +279,68 @@ func TestConsolidate_Determinism(t *testing.T) {
 func TestConsolidate_EmptyInput(t *testing.T) {
 	t.Parallel()
 	cfg := buildCfg(map[string]*ir.Zone{})
-	report := Consolidate(cfg)
+	report := Consolidate(cfg, false)
 	require.Empty(t, report.PeerZones)
 	require.Empty(t, report.Skipped)
+}
+
+// ─── Relaxed (default) — target = trailing component of the zone name ────────
+
+// Zone names like "ESX9_HBA0_TGT1" (host alias is "ESX9", not "ESX9_HBA0") do
+// not strictly decompose, but the target "TGT1" is a trailing component → the
+// default (relaxed) mode consolidates them; --consolidate-strict does not.
+func TestConsolidate_RelaxedTrailingComponent(t *testing.T) {
+	t.Parallel()
+
+	mk := func() *ir.ZoningConfig {
+		return buildCfg(map[string]*ir.Zone{
+			"ESX9_HBA0_TGT1@vsan10":  flatZone("ESX9_HBA0_TGT1", 10, "ESX9", "TGT1"),
+			"ESX10_HBA0_TGT1@vsan10": flatZone("ESX10_HBA0_TGT1", 10, "ESX10", "TGT1"),
+		})
+	}
+
+	t.Run("relaxed default consolidates by trailing-component target", func(t *testing.T) {
+		t.Parallel()
+		cfg := mk()
+		report := Consolidate(cfg, false)
+		require.NotContains(t, cfg.Zones, "ESX9_HBA0_TGT1@vsan10")
+		require.NotContains(t, cfg.Zones, "ESX10_HBA0_TGT1@vsan10")
+		pz, ok := cfg.Zones["TGT1_peerzone@vsan10"]
+		require.True(t, ok, "TGT1_peerzone@vsan10 must exist")
+		require.Equal(t, "TGT1", pz.Members[0].Value)
+		require.Equal(t, "target", pz.Members[0].Role)
+		require.Len(t, report.PeerZones, 1)
+		require.Equal(t, "TGT1", report.PeerZones[0].Target)
+		require.ElementsMatch(t, []string{"ESX9", "ESX10"}, report.PeerZones[0].Members)
+		require.Empty(t, report.Skipped)
+	})
+
+	t.Run("strict leaves <host>_HBA0_<target> flat", func(t *testing.T) {
+		t.Parallel()
+		cfg := mk()
+		report := Consolidate(cfg, true)
+		require.Contains(t, cfg.Zones, "ESX9_HBA0_TGT1@vsan10")
+		require.Contains(t, cfg.Zones, "ESX10_HBA0_TGT1@vsan10")
+		require.NotContains(t, cfg.Zones, "TGT1_peerzone@vsan10")
+		require.Empty(t, report.PeerZones)
+		require.Len(t, report.Skipped, 2)
+		for _, s := range report.Skipped {
+			require.Contains(t, s.Reason, "--consolidate-strict")
+		}
+	})
+}
+
+// Both members are trailing components of the zone name → ambiguous, left flat.
+func TestConsolidate_BothMembersTrailing_LeftFlat(t *testing.T) {
+	t.Parallel()
+	cfg := buildCfg(map[string]*ir.Zone{
+		"Y_X@vsan10": flatZone("Y_X", 10, "X", "Y_X"),
+	})
+	report := Consolidate(cfg, false)
+	require.Contains(t, cfg.Zones, "Y_X@vsan10")
+	require.Empty(t, report.PeerZones)
+	require.Len(t, report.Skipped, 1)
+	require.Contains(t, report.Skipped[0].Reason, "both members are a trailing component")
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
