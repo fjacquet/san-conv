@@ -143,6 +143,25 @@ All warnings are non-fatal — the tool always produces best-effort output even 
 | 0 | Success (warnings are allowed) |
 | 1 | Fatal error (file not found, parse failure, IO error) |
 
+### Smart zoning → peer zones
+
+If a Cisco MDS zone uses smart zoning (members tagged `init`, `target`, or
+`both`), `mds2brocade` converts it to a Brocade **peer zone**:
+
+```
+zonecreate --peerzone "ZoneName" -principal "<targets>" -members "<initiators>"
+```
+
+- `target` and `both` members, plus any member with no role tag, become
+  `-principal` members; a warning is emitted for each `both`/untagged member
+  (placing them as principals is connectivity-safe but slightly over-permissive).
+- `init` members become non-principal `-members`.
+- If a smart-zoned zone has no principal members (all `init`), it is emitted as a
+  plain `zonecreate` instead, with a warning.
+
+Peer-zone output requires **Fabric OS ≥ 7.4** on the target switch (peer zoning
+was introduced in FOS 7.4). It is emitted regardless of `--fos-version`.
+
 ---
 
 ## Name Sanitization
@@ -187,7 +206,7 @@ Some MDS constructs have no FOS equivalent. The tool skips them and emits a warn
 | `member fcid` | Skipped with warning |
 | `member ip-address` | Skipped with warning |
 | `member symbolic-nodename` | Skipped with warning |
-| Smart zoning keywords (`init`/`target`/`both`) | Keyword stripped, pWWN kept, warning emitted |
+| Smart zoning keywords (`init`/`target`/`both`) | Converted to a Brocade peer zone — see "Smart zoning → peer zones" below |
 | IVR zones | Entire zone skipped with warning |
 | TI zones | Entire zone skipped with warning |
 
@@ -203,7 +222,7 @@ MDS uses per-VSAN zoning. Brocade uses a single fabric zone database. When conve
 - VSAN information is not preserved in output (Brocade uses separate physical or virtual fabrics)
 - Zone and alias names from different VSANs may collide — the collision detection handles this with `_2`/`_3` disambiguation
 
-For large environments with many VSANs, consider using `--vsan` (planned for v2) to convert one VSAN at a time.
+For large environments with many VSANs, use `--vsan <N>` to convert one VSAN at a time.
 
 ---
 
