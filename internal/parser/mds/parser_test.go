@@ -264,6 +264,27 @@ func TestParse_MultiVSANWarnings(t *testing.T) {
 		_, ok20 := cfg.Zones["Shared@vsan20"]
 		require.True(t, ok10 && ok20, "both Shared@vsan10 and Shared@vsan20 must exist")
 	})
+
+	t.Run("breakdown counts are deduplicated across repeated definitions", func(t *testing.T) {
+		t.Parallel()
+		// A capture that contains both "show zoneset active" and "show running-config"
+		// lists every zone and zoneset twice; the breakdown must count each once.
+		const doubled = "zone name Za vsan 10\n  member pwwn 10:00:00:00:c9:11:11:11\n" +
+			"zoneset name ZS10 vsan 10\n  member Za\n" +
+			"zone name Zb vsan 20\n  member pwwn 10:00:00:00:c9:22:22:22\n" +
+			"zoneset name ZS20 vsan 20\n  member Zb\n" +
+			"zone name Za vsan 10\n  member pwwn 10:00:00:00:c9:11:11:11\n" +
+			"zoneset name ZS10 vsan 10\n  member Za\n" +
+			"zone name Zb vsan 20\n  member pwwn 10:00:00:00:c9:22:22:22\n" +
+			"zoneset name ZS20 vsan 20\n  member Zb\n"
+
+		cfg, err := Parse(strings.NewReader(doubled))
+		require.NoError(t, err)
+		require.True(t, containsSubstr(cfg.Warnings, "VSAN 10 (1 zones, 1 zonesets)"),
+			"VSAN 10 counts must be deduplicated, got: %v", cfg.Warnings)
+		require.True(t, containsSubstr(cfg.Warnings, "VSAN 20 (1 zones, 1 zonesets)"),
+			"VSAN 20 counts must be deduplicated, got: %v", cfg.Warnings)
+	})
 }
 
 // containsSubstr reports whether any element of ss contains sub.

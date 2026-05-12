@@ -200,6 +200,9 @@ func TestRun_MDS2Brocade_VSANFilter(t *testing.T) {
 	require.Contains(t, out, "Zone_A", "VSAN 10 zone must be present (sanitized name)")
 	require.NotContains(t, out, "Zone_B", "VSAN 20 zone must be filtered out")
 	require.NotContains(t, out, "ZS_VSAN20", "VSAN 20 zoneset must be filtered out")
+	// The multi-VSAN warning's "pass --vsan N" advice is rewritten once we've scoped.
+	require.Contains(t, stderr.String(), "converted only VSAN 10 (--vsan)")
+	require.NotContains(t, stderr.String(), "pass --vsan N to scope")
 }
 
 // VSAN filter with no matching VSAN: warns and produces no zones, no error.

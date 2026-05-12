@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	brocadeemitter "github.com/fjacquet/san-conv/internal/emitter/brocade"
 	mdsemitter "github.com/fjacquet/san-conv/internal/emitter/mds"
@@ -137,6 +138,18 @@ func filterVSAN(cfg *ir.ZoningConfig, vsan int) {
 			delete(cfg.Aliases, name)
 		}
 	}
+
+	// The parser's "multi-VSAN input: … pass --vsan N to scope" advice no longer
+	// applies once we have scoped — rewrite its tail to reflect what we did.
+	for i, w := range cfg.Warnings {
+		if !strings.HasPrefix(w, "multi-VSAN input:") {
+			continue
+		}
+		if before, _, found := strings.Cut(w, " — "); found {
+			cfg.Warnings[i] = before + fmt.Sprintf(" — converted only VSAN %d (--vsan)", vsan)
+		}
+	}
+
 	if len(cfg.Zones) == 0 {
 		cfg.Warnings = append(cfg.Warnings, fmt.Sprintf(
 			"--vsan %d matched no zones in the input; check the VSAN number", vsan))

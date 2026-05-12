@@ -133,8 +133,6 @@ func pass2BuildZones(lines []string, cfg *ir.ZoningConfig) {
 	state := stateIdle
 	var currentZone *ir.Zone
 	var currentZoneset *ir.ZoneConfig
-	zoneCountByVSAN := make(map[int]int)
-	zonesetCountByVSAN := make(map[int]int)
 	zoneNameFirstVSAN := make(map[string]int)
 	collisionWarned := make(map[string]bool)
 
@@ -172,7 +170,6 @@ func pass2BuildZones(lines []string, cfg *ir.ZoningConfig) {
 			var vsan int
 			fmt.Sscanf(m[2], "%d", &vsan)
 
-			zoneCountByVSAN[vsan]++
 			if firstVSAN, seen := zoneNameFirstVSAN[name]; seen && firstVSAN != vsan && !collisionWarned[name] {
 				cfg.Warnings = append(cfg.Warnings, fmt.Sprintf(
 					"zone name %q appears in VSAN %d and VSAN %d — Brocade zone names are fabric-wide; the output will contain conflicting zonecreate lines for %q unless you scope with --vsan",
@@ -205,8 +202,6 @@ func pass2BuildZones(lines []string, cfg *ir.ZoningConfig) {
 			name := m[1]
 			var vsan int
 			fmt.Sscanf(m[2], "%d", &vsan)
-
-			zonesetCountByVSAN[vsan]++
 
 			key := fmt.Sprintf("%s@vsan%d", name, vsan)
 			zc := &ir.ZoneConfig{Name: name, VSAN: vsan}
@@ -243,6 +238,16 @@ func pass2BuildZones(lines []string, cfg *ir.ZoningConfig) {
 	}
 
 	// Emit one multi-VSAN breakdown warning if the input spans more than one VSAN.
+	// Counts come from the deduplicated IR maps, so a config that appears twice in
+	// the input (e.g. "show zoneset active" + "show running-config") is counted once.
+	zoneCountByVSAN := make(map[int]int)
+	for _, z := range cfg.Zones {
+		zoneCountByVSAN[z.VSAN]++
+	}
+	zonesetCountByVSAN := make(map[int]int)
+	for _, zc := range cfg.ZoneConfigs {
+		zonesetCountByVSAN[zc.VSAN]++
+	}
 	vsanSet := make(map[int]struct{})
 	for v := range zoneCountByVSAN {
 		vsanSet[v] = struct{}{}

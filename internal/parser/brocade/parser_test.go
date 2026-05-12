@@ -174,17 +174,43 @@ func TestParse(t *testing.T) {
 func TestParse_TerminalArtifacts(t *testing.T) {
 	t.Parallel()
 
-	// A CLI-format Brocade script captured through a terminal: ANSI-wrapped
-	// --More-- prompt glued (via CR) onto the line after it.
-	const captured = "alicreate \"host_01\", \"10:00:00:00:c9:ab:cd:ef\"\r\n" +
-		"\x1b[7m--More--\x1b[m\ralicreate \"storage_01\", \"50:05:07:61:01:23:45:67\"\r\n" +
-		"zonecreate \"z1\", \"host_01;storage_01\"\r\n"
+	// Brocade "cfgshow" output captured through a paged terminal session: an
+	// ANSI-wrapped --More-- prompt, followed by a bare CR, glued onto the start
+	// of the line that scrolled in after it — once before a "zone:" token, once
+	// before an "alias:" token. preprocess.Clean must un-glue these so the
+	// parser still sees a clean cfgshow listing.
+	const captured = "Defined configuration:\r\n" +
+		" cfg:   Prod_cfg\r\n" +
+		"        z1; z2\r\n" +
+		" zone:  z1\r\n" +
+		"        host_01; storage_01\r\n" +
+		"\x1b[7m--More--\x1b[m\r zone:  z2\r\n" +
+		"        host_02; storage_02\r\n" +
+		" alias: host_01\r\n" +
+		"        10:00:00:00:c9:ab:cd:ef\r\n" +
+		" alias: storage_01\r\n" +
+		"        50:05:07:61:01:23:45:67\r\n" +
+		"\x1b[7m--More--\x1b[m\r alias: host_02\r\n" +
+		"        10:00:00:00:c9:ab:cd:ee\r\n" +
+		" alias: storage_02\r\n" +
+		"        50:05:07:61:01:23:45:68\r\n"
 
 	cfg, err := Parse(strings.NewReader(captured))
 	require.NoError(t, err)
-	require.Len(t, cfg.Aliases, 2, "both aliases must survive the --More-- prompt")
-	require.Equal(t, "10:00:00:00:c9:ab:cd:ef", cfg.Aliases["host_01"].PWWN)
-	require.Equal(t, "50:05:07:61:01:23:45:67", cfg.Aliases["storage_01"].PWWN)
-	require.Len(t, cfg.Zones, 1)
-	require.Len(t, cfg.Zones["z1"].Members, 2)
+
+	// z2's "zone:" line was glued behind a --More-- prompt; it and its members must survive.
+	require.Len(t, cfg.Zones, 2, "both zones must survive the --More-- prompts")
+	z2, ok := cfg.Zones["z2"]
+	require.True(t, ok, "zone 'z2' (glued behind --More--) must exist")
+	require.Len(t, z2.Members, 2, "z2 must keep both members")
+	require.Equal(t, "alias", z2.Members[0].Type)
+	require.Equal(t, "host_02", z2.Members[0].Value)
+	require.Equal(t, "alias", z2.Members[1].Type)
+	require.Equal(t, "storage_02", z2.Members[1].Value)
+
+	// host_02's "alias:" line was also glued behind a --More-- prompt.
+	require.Len(t, cfg.Aliases, 4, "all four aliases must survive")
+	require.Equal(t, "10:00:00:00:c9:ab:cd:ee", cfg.Aliases["host_02"].PWWN)
+
+	require.Equal(t, []string{"z1", "z2"}, cfg.ZoneConfigs["Prod_cfg"].ZoneNames)
 }
