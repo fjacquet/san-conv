@@ -35,7 +35,7 @@ incorrect — peer zoning is the equivalent.
 1. Roles are recognised on `member pwwn`, `member device-alias`, and
    `member fcalias` lines and recorded on the IR (`ir.ZoneMember.Role`).
 2. A zone with at least one roled member is emitted as
-   `zonecreate --peerzone "name", -principal "<principals>" -members "<non-principals>"`
+   `zonecreate --peerzone "name" -principal "<principals>" -members "<non-principals>"`
    (the ` -members "…"` clause is omitted when there are no non-principals).
 3. Role → slot mapping:
    - `target` → principal

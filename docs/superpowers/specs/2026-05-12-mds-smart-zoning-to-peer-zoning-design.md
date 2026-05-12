@@ -25,7 +25,7 @@ old N×M "one initiator + one target" zone explosion into a single zone.
 **Brocade FOS has the direct equivalent — a (regular) *peer zone*:**
 
 ```
-zonecreate --peerzone "SmartZone", -principal "50:06:0e:80:04:7c:00:01;…" -members "50:05:0c:00:00:c8:aa:50;…"
+zonecreate --peerzone "SmartZone" -principal "50:06:0e:80:04:7c:00:01;…" -members "50:05:0c:00:00:c8:aa:50;…"
 ```
 
 — *principal* members talk to everyone in the zone; *non-principal* (`-members`)
@@ -107,12 +107,12 @@ Add one field to `ZoneMember`:
 
 ```go
 type ZoneMember struct {
-	Type string // "pwwn" | "alias" | "unsupported"
-	Value string
-	// Role is the Cisco smart-zoning role: "" (none), "init", "target", or
-	// "both". Brocade emission maps target/both/"" → principal, init →
-	// non-principal. Empty for any non-MDS source and for plain MDS zones.
-	Role string
+ Type string // "pwwn" | "alias" | "unsupported"
+ Value string
+ // Role is the Cisco smart-zoning role: "" (none), "init", "target", or
+ // "both". Brocade emission maps target/both/"" → principal, init →
+ // non-principal. Empty for any non-MDS source and for plain MDS zones.
+ Role string
 }
 ```
 
@@ -150,8 +150,8 @@ In the Zones section, for each zone:
    - `Role == ""` (unroled member inside a smart-zoned zone) → principal list;
      append a warning
      `zone "Z": member X has no smart-zoning role → emitted as a peer-zone principal (over-permissive); review`
-   - emit `zonecreate --peerzone "name", -principal "p1;p2;…" -members "m1;m2;…"`;
-     omit the ` -members "…"` clause entirely if the non-principal list is empty.
+   - emit `zonecreate --peerzone "name" -principal "p1;p2;…" -members "m1;m2;…"`;
+     omit the `-members "…"` clause entirely if the non-principal list is empty.
    - **Degenerate cases:** if after resolution the principal list is empty (e.g.
      only `init` members survived), fall back to a plain `zonecreate "name",
      "all;resolved;members"` and warn
@@ -204,6 +204,7 @@ zone, all-members-unresolvable — is a `WARN`, never fatal. No new exit paths.
 ## Testing
 
 **Fixtures (`testdata/mds/`):**
+
 - Extend or add alongside `smart_zoning.cfg`:
   - a zone with `member pwwn … init` / `… target` (the basic case),
   - a zone with `member device-alias … target` and `member fcalias … init`
@@ -216,6 +217,7 @@ zone, all-members-unresolvable — is a `WARN`, never fatal. No new exit paths.
   empty principal → plain-zone fallback).
 
 **`internal/parser/mds/parser_test.go`:**
+
 - Roles are captured on `ZoneMember.Role` for pwwn, device-alias, and fcalias
   members.
 - A smart-zoned fixture produces **no** `"no FOS equivalent"` / `"stripped"`
@@ -223,14 +225,16 @@ zone, all-members-unresolvable — is a `WARN`, never fatal. No new exit paths.
 - A plain zone still yields `Role == ""` on all members.
 
 **`internal/emitter/brocade/emitter_test.go`:**
-- Smart-zoned zone → output contains `zonecreate --peerzone "Name", -principal "…" -members "…"` with the targets/`both`/unroled in `-principal` and the inits in `-members`.
+
+- Smart-zoned zone → output contains `zonecreate --peerzone "Name" -principal "…" -members "…"` with the targets/`both`/unroled in `-principal` and the inits in `-members`.
 - `both` member and unroled member each produce the documented warning.
-- Smart-zoned zone with no `init` members → `zonecreate --peerzone "Name", -principal "…"` with no `-members` clause.
+- Smart-zoned zone with no `init` members → `zonecreate --peerzone "Name" -principal "…"` with no `-members` clause.
 - Degenerate (only `init`) → plain `zonecreate "Name", "…"` + the fallback warning.
 - A plain zone still emits the plain `zonecreate "Name", "m;m"` form (regression).
 - `cfgcreate` still lists the peer zone by name.
 
 **`internal/converter/converter_test.go`:**
+
 - End-to-end `mds2brocade` on a smart-zoned fixture (default `--fos-version`) →
   stdout contains the `--peerzone` line; stderr no longer contains "no FOS
   equivalent".
