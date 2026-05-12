@@ -71,24 +71,34 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
-			name:    "smart zoning keywords stripped with warning",
+			name:    "smart zoning roles captured on pwwn and alias members, no warnings",
 			fixture: "smart_zoning.cfg",
 			checkFn: func(t *testing.T, cfg *ir.ZoningConfig) {
 				t.Helper()
-				require.Len(t, cfg.Zones, 1, "want 1 zone")
-				require.Len(t, cfg.Warnings, 3, "want 3 warnings (one per smart-zoning role)")
+				require.Len(t, cfg.Zones, 2, "want 2 zones (SmartZone, SmartAliases)")
+				require.Empty(t, cfg.Warnings, "roles are now captured, not stripped — want 0 warnings")
 
-				zone, ok := cfg.Zones["SmartZone@vsan10"]
+				sz, ok := cfg.Zones["SmartZone@vsan10"]
 				require.True(t, ok, "zone key 'SmartZone@vsan10' must exist")
-				require.Len(t, zone.Members, 3, "zone must have 3 pwwn members")
-
-				for i, m := range zone.Members {
-					require.Equal(t, "pwwn", m.Type, "member[%d] must be pwwn", i)
+				require.Len(t, sz.Members, 3)
+				for i, m := range sz.Members {
+					require.Equal(t, "pwwn", m.Type, "SmartZone member[%d] type", i)
 				}
+				require.Equal(t, "init", sz.Members[0].Role)
+				require.Equal(t, "target", sz.Members[1].Role)
+				require.Equal(t, "both", sz.Members[2].Role)
 
-				for _, w := range cfg.Warnings {
-					require.True(t, strings.Contains(w, "smart-zoning role"), "warning must contain 'smart-zoning role': %q", w)
-				}
+				sa, ok := cfg.Zones["SmartAliases@vsan10"]
+				require.True(t, ok, "zone key 'SmartAliases@vsan10' must exist")
+				require.Len(t, sa.Members, 3)
+				require.Equal(t, "alias", sa.Members[0].Type)
+				require.Equal(t, "Host-A", sa.Members[0].Value)
+				require.Equal(t, "init", sa.Members[0].Role)
+				require.Equal(t, "alias", sa.Members[1].Type)
+				require.Equal(t, "Array-Port", sa.Members[1].Value)
+				require.Equal(t, "target", sa.Members[1].Role)
+				require.Equal(t, "pwwn", sa.Members[2].Type)
+				require.Equal(t, "", sa.Members[2].Role, "the roleless member must have an empty Role")
 			},
 		},
 		{
