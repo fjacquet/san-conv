@@ -24,7 +24,7 @@ var (
 	reMemberDeviceAlias   = regexp.MustCompile(`^\s+member\s+device-alias\s+(\S+)`)
 	reMemberFcAlias       = regexp.MustCompile(`^\s+member\s+fcalias\s+(\S+)`)
 	reMemberPWWN          = regexp.MustCompile(`^\s+member\s+pwwn\s+(\S+)`)
-	reMemberPWWNRole      = regexp.MustCompile(`^\s+member\s+pwwn\s+\S+\s+(init|target|both)\s*$`)
+	reMemberRole          = regexp.MustCompile(`^\s+member\s+\S+\s+\S+\s+(init|target|both)\s*$`)
 	reMemberInterface     = regexp.MustCompile(`^\s+member\s+interface\s+`)
 	reMemberFcid          = regexp.MustCompile(`^\s+member\s+fcid\s+`)
 	reMemberIPAddr        = regexp.MustCompile(`^\s+member\s+ip-address\s+`)
@@ -272,6 +272,16 @@ func pass2BuildZones(lines []string, cfg *ir.ZoningConfig) {
 	}
 }
 
+// memberRole extracts a Cisco smart-zoning role ("init"|"target"|"both") from a
+// zone member line, or "" if the line has none. It works for pwwn, device-alias,
+// and fcalias member lines (the line shape is "  member <type> <name> <role>").
+func memberRole(line string) string {
+	if m := reMemberRole.FindStringSubmatch(line); m != nil {
+		return m[1]
+	}
+	return ""
+}
+
 // processZoneMember classifies and handles a single zone member line.
 // Unsupported member types append a warning and are NOT added to zone.Members.
 func processZoneMember(line string, zone *ir.Zone, cfg *ir.ZoningConfig) {
@@ -312,31 +322,21 @@ func processZoneMember(line string, zone *ir.Zone, cfg *ir.ZoningConfig) {
 		return
 	}
 
-	// device-alias member
+	// device-alias member (optionally carrying a smart-zoning role)
 	if m := reMemberDeviceAlias.FindStringSubmatch(line); m != nil {
-		zone.Members = append(zone.Members, &ir.ZoneMember{Type: "alias", Value: m[1]})
+		zone.Members = append(zone.Members, &ir.ZoneMember{Type: "alias", Value: m[1], Role: memberRole(line)})
 		return
 	}
 
-	// fcalias member
+	// fcalias member (optionally carrying a smart-zoning role)
 	if m := reMemberFcAlias.FindStringSubmatch(line); m != nil {
-		zone.Members = append(zone.Members, &ir.ZoneMember{Type: "alias", Value: m[1]})
+		zone.Members = append(zone.Members, &ir.ZoneMember{Type: "alias", Value: m[1], Role: memberRole(line)})
 		return
 	}
 
-	// pWWN member — check for smart-zoning role suffix AFTER extracting WWN
+	// pWWN member (optionally carrying a smart-zoning role)
 	if m := reMemberPWWN.FindStringSubmatch(line); m != nil {
-		wwn := normalizeWWN(m[1])
-		zone.Members = append(zone.Members, &ir.ZoneMember{Type: "pwwn", Value: wwn})
-
-		// Check for smart-zoning role keyword
-		if roleMatch := reMemberPWWNRole.FindStringSubmatch(line); roleMatch != nil {
-			role := roleMatch[1]
-			cfg.Warnings = append(cfg.Warnings, fmt.Sprintf(
-				"zone %q: smart-zoning role %q on member %s stripped — no FOS equivalent",
-				zone.Name, role, wwn,
-			))
-		}
+		zone.Members = append(zone.Members, &ir.ZoneMember{Type: "pwwn", Value: normalizeWWN(m[1]), Role: memberRole(line)})
 		return
 	}
 }

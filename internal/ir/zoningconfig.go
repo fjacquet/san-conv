@@ -56,6 +56,12 @@ type ZoneMember struct {
 	//   "alias":       the alias name
 	//   "unsupported": original member string (for warning message)
 	Value string
+
+	// Role is the Cisco smart-zoning role on this member: "" (none), "init",
+	// "target", or "both". Brocade emission maps target/both/"" → peer-zone
+	// principal and init → non-principal. Always "" for non-MDS sources and for
+	// plain (non-smart-zoned) MDS zones.
+	Role string
 }
 
 // ZoneConfig represents a zone set / configuration.

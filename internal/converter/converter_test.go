@@ -221,6 +221,37 @@ func TestRun_MDS2Brocade_VSANFilterNoMatch(t *testing.T) {
 	require.NotContains(t, stdout.String(), "zonecreate")
 }
 
+// Smart-zoned MDS zone converts to a Brocade peer zone (no "no FOS equivalent" warning).
+func TestRun_MDS2Brocade_PeerZone(t *testing.T) {
+	t.Parallel()
+	var stdout, stderr bytes.Buffer
+	opts := Options{
+		InputFile: "../../testdata/mds/smart_zoning.cfg",
+		Direction: "mds2brocade",
+	}
+	err := Run(opts, &stdout, &stderr)
+	require.NoError(t, err)
+	out := stdout.String()
+	require.Contains(t, out, `zonecreate --peerzone "SmartZone" -principal `)
+	require.Contains(t, out, `zonecreate --peerzone "SmartAliases" -principal `)
+	require.NotContains(t, stderr.String(), "no FOS equivalent")
+}
+
+// A smart-zoned zone with only init members falls back to a plain zone + warning.
+func TestRun_MDS2Brocade_PeerZoneInitOnlyFallback(t *testing.T) {
+	t.Parallel()
+	var stdout, stderr bytes.Buffer
+	opts := Options{
+		InputFile: "../../testdata/mds/smart_zoning_initonly.cfg",
+		Direction: "mds2brocade",
+	}
+	err := Run(opts, &stdout, &stderr)
+	require.NoError(t, err)
+	require.Contains(t, stdout.String(), `zonecreate "InitOnly", "10:00:00:00:c9:aa:00:01;10:00:00:00:c9:aa:00:02"`)
+	require.NotContains(t, stdout.String(), "--peerzone")
+	require.Contains(t, stderr.String(), `zone "InitOnly": peer zone has no principal members after resolution`)
+}
+
 // Test 10: stderr summary line format matches expected pattern.
 // Pattern: "Summary: N aliases, N zones, N configs converted; N warnings"
 func TestRun_StderrSummaryFormat(t *testing.T) {

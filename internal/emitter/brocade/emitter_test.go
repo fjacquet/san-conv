@@ -339,3 +339,119 @@ func TestEmit(t *testing.T) {
 		})
 	}
 }
+
+func TestEmit_PeerZones(t *testing.T) {
+	t.Parallel()
+
+	roled := func(typ, val, role string) *ir.ZoneMember {
+		return &ir.ZoneMember{Type: typ, Value: val, Role: role}
+	}
+
+	t.Run("smart-zoned zone emits zonecreate --peerzone with partitioned members", func(t *testing.T) {
+		t.Parallel()
+		cfg := &ir.ZoningConfig{
+			SourceFormat: "mds-nxos",
+			Aliases:      map[string]*ir.Alias{},
+			Zones: map[string]*ir.Zone{
+				"PZ": {Name: "PZ", VSAN: 0, Members: []*ir.ZoneMember{
+					roled("pwwn", "10:00:00:00:c9:00:00:01", "init"),
+					roled("pwwn", "50:06:0e:80:00:00:00:01", "target"),
+				}},
+			},
+			ZoneConfigs: map[string]*ir.ZoneConfig{},
+		}
+		var buf bytes.Buffer
+		require.NoError(t, Emit(cfg, &buf, false))
+		require.Contains(t, buf.String(),
+			`zonecreate --peerzone "PZ" -principal "50:06:0e:80:00:00:00:01" -members "10:00:00:00:c9:00:00:01"`)
+		require.Empty(t, cfg.Warnings)
+	})
+
+	t.Run("both and roleless members go to principal with a warning", func(t *testing.T) {
+		t.Parallel()
+		cfg := &ir.ZoningConfig{
+			SourceFormat: "mds-nxos",
+			Aliases:      map[string]*ir.Alias{},
+			Zones: map[string]*ir.Zone{
+				"PZ": {Name: "PZ", VSAN: 0, Members: []*ir.ZoneMember{
+					roled("pwwn", "10:00:00:00:c9:00:00:01", "init"),
+					roled("pwwn", "50:06:0e:80:00:00:00:01", "target"),
+					roled("pwwn", "50:06:0e:80:00:00:00:02", "both"),
+					roled("alias", "Mystery", ""),
+				}},
+			},
+			ZoneConfigs: map[string]*ir.ZoneConfig{},
+		}
+		var buf bytes.Buffer
+		require.NoError(t, Emit(cfg, &buf, false))
+		out := buf.String()
+		require.Contains(t, out,
+			`zonecreate --peerzone "PZ" -principal "50:06:0e:80:00:00:00:01;50:06:0e:80:00:00:00:02;Mystery" -members "10:00:00:00:c9:00:00:01"`)
+		joined := strings.Join(cfg.Warnings, "\n")
+		require.Contains(t, joined, `zone "PZ": smart-zoning role "both" on member 50:06:0e:80:00:00:00:02 → emitted as a peer-zone principal`)
+		require.Contains(t, joined, `zone "PZ": member Mystery has no smart-zoning role → emitted as a peer-zone principal`)
+	})
+
+	t.Run("no init members means no -members clause", func(t *testing.T) {
+		t.Parallel()
+		cfg := &ir.ZoningConfig{
+			SourceFormat: "mds-nxos",
+			Aliases:      map[string]*ir.Alias{},
+			Zones: map[string]*ir.Zone{
+				"PZ": {Name: "PZ", VSAN: 0, Members: []*ir.ZoneMember{
+					roled("pwwn", "50:06:0e:80:00:00:00:01", "target"),
+					roled("pwwn", "10:00:00:00:c9:00:00:01", "both"),
+				}},
+			},
+			ZoneConfigs: map[string]*ir.ZoneConfig{},
+		}
+		var buf bytes.Buffer
+		require.NoError(t, Emit(cfg, &buf, false))
+		out := buf.String()
+		require.Contains(t, out, `zonecreate --peerzone "PZ" -principal "50:06:0e:80:00:00:00:01;10:00:00:00:c9:00:00:01"`)
+		require.NotContains(t, out, "-members")
+	})
+
+	t.Run("all-init smart-zoned zone falls back to a plain zone with a warning", func(t *testing.T) {
+		t.Parallel()
+		cfg := &ir.ZoningConfig{
+			SourceFormat: "mds-nxos",
+			Aliases:      map[string]*ir.Alias{},
+			Zones: map[string]*ir.Zone{
+				"PZ": {Name: "PZ", VSAN: 0, Members: []*ir.ZoneMember{
+					roled("pwwn", "10:00:00:00:c9:00:00:01", "init"),
+					roled("pwwn", "10:00:00:00:c9:00:00:02", "init"),
+				}},
+			},
+			ZoneConfigs: map[string]*ir.ZoneConfig{},
+		}
+		var buf bytes.Buffer
+		require.NoError(t, Emit(cfg, &buf, false))
+		out := buf.String()
+		require.Contains(t, out, `zonecreate "PZ", "10:00:00:00:c9:00:00:01;10:00:00:00:c9:00:00:02"`)
+		require.NotContains(t, out, "--peerzone")
+		require.Contains(t, strings.Join(cfg.Warnings, "\n"),
+			`zone "PZ": peer zone has no principal members after resolution — emitted as a plain zone`)
+	})
+
+	t.Run("zone with no roles is still a plain zonecreate", func(t *testing.T) {
+		t.Parallel()
+		cfg := &ir.ZoningConfig{
+			SourceFormat: "mds-nxos",
+			Aliases:      map[string]*ir.Alias{},
+			Zones: map[string]*ir.Zone{
+				"PlainZ": {Name: "PlainZ", VSAN: 0, Members: []*ir.ZoneMember{
+					{Type: "pwwn", Value: "10:00:00:00:c9:00:00:01"},
+					{Type: "pwwn", Value: "50:06:0e:80:00:00:00:01"},
+				}},
+			},
+			ZoneConfigs: map[string]*ir.ZoneConfig{},
+		}
+		var buf bytes.Buffer
+		require.NoError(t, Emit(cfg, &buf, false))
+		out := buf.String()
+		require.Contains(t, out, `zonecreate "PlainZ", "10:00:00:00:c9:00:00:01;50:06:0e:80:00:00:00:01"`)
+		require.NotContains(t, out, "--peerzone")
+		require.Empty(t, cfg.Warnings)
+	})
+}
