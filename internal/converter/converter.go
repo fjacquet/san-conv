@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	brocadeemitter "github.com/fjacquet/san-conv/internal/emitter/brocade"
 	mdsemitter "github.com/fjacquet/san-conv/internal/emitter/mds"
@@ -21,6 +22,7 @@ type Options struct {
 	OutputFile string
 	ScriptFile string
 	FOSVersion string
+	VSAN       int // when non-zero, convert only this VSAN's zones/zonesets (mds2brocade only)
 }
 
 // Run executes the full conversion pipeline: parse → validate → emit.
@@ -53,6 +55,11 @@ func Run(opts Options, stdout io.Writer, stderr io.Writer) error {
 		cfg = parsed
 	default:
 		return fmt.Errorf("unknown direction %q (use mds2brocade or brocade2mds)", opts.Direction)
+	}
+
+	// Step 2b: Optionally scope to a single VSAN (mds2brocade only).
+	if opts.Direction == "mds2brocade" && opts.VSAN != 0 {
+		filterVSAN(cfg, opts.VSAN)
 	}
 
 	// Step 3: Sanitize ONLY for mds2brocade direction.
@@ -109,4 +116,42 @@ func Run(opts Options, stdout io.Writer, stderr io.Writer) error {
 		len(cfg.Aliases), len(cfg.Zones), len(cfg.ZoneConfigs), len(cfg.Warnings))
 
 	return nil
+}
+
+// filterVSAN removes everything that does not belong to the given VSAN: zones
+// and zonesets whose VSAN differs, and fcaliases whose VSAN is neither 0 nor
+// vsan. Device-aliases (VSAN 0, fabric-wide) are always kept. If filtering
+// leaves no zones, a warning is appended to cfg.Warnings.
+func filterVSAN(cfg *ir.ZoningConfig, vsan int) {
+	for key, z := range cfg.Zones {
+		if z.VSAN != vsan {
+			delete(cfg.Zones, key)
+		}
+	}
+	for key, zc := range cfg.ZoneConfigs {
+		if zc.VSAN != vsan {
+			delete(cfg.ZoneConfigs, key)
+		}
+	}
+	for name, a := range cfg.Aliases {
+		if a.VSAN != 0 && a.VSAN != vsan {
+			delete(cfg.Aliases, name)
+		}
+	}
+
+	// The parser's "multi-VSAN input: … pass --vsan N to scope" advice no longer
+	// applies once we have scoped — rewrite its tail to reflect what we did.
+	for i, w := range cfg.Warnings {
+		if !strings.HasPrefix(w, "multi-VSAN input:") {
+			continue
+		}
+		if before, _, found := strings.Cut(w, " — "); found {
+			cfg.Warnings[i] = before + fmt.Sprintf(" — converted only VSAN %d (--vsan)", vsan)
+		}
+	}
+
+	if len(cfg.Zones) == 0 {
+		cfg.Warnings = append(cfg.Warnings, fmt.Sprintf(
+			"--vsan %d matched no zones in the input; check the VSAN number", vsan))
+	}
 }

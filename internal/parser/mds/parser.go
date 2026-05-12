@@ -1,13 +1,14 @@
 package mds
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/fjacquet/san-conv/internal/ir"
+	"github.com/fjacquet/san-conv/internal/preprocess"
 )
 
 // Compiled regexes for all MDS NX-OS running-config constructs.
@@ -38,12 +39,8 @@ var (
 // *ir.ZoningConfig. Non-fatal issues are appended to cfg.Warnings.
 // Parse only returns an error for I/O failures.
 func Parse(r io.Reader) (*ir.ZoningConfig, error) {
-	scanner := bufio.NewScanner(r)
-	var lines []string
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-	}
-	if err := scanner.Err(); err != nil {
+	lines, err := preprocess.Clean(r)
+	if err != nil {
 		return nil, err
 	}
 
@@ -64,7 +61,7 @@ func Parse(r io.Reader) (*ir.ZoningConfig, error) {
 // populate cfg.Aliases.
 func pass1BuildAliases(lines []string, cfg *ir.ZoningConfig) {
 	const (
-		stateIdle        = iota
+		stateIdle = iota
 		stateDeviceAliasDB
 		stateFcAlias
 	)
@@ -127,7 +124,7 @@ func pass1BuildAliases(lines []string, cfg *ir.ZoningConfig) {
 // cfg.ZoneConfigs.
 func pass2BuildZones(lines []string, cfg *ir.ZoningConfig) {
 	const (
-		stateIdle     = iota
+		stateIdle = iota
 		stateZone
 		stateZoneset
 		stateIVRSkip
@@ -136,7 +133,8 @@ func pass2BuildZones(lines []string, cfg *ir.ZoningConfig) {
 	state := stateIdle
 	var currentZone *ir.Zone
 	var currentZoneset *ir.ZoneConfig
-	seenVSANs := make(map[int]bool)
+	zoneNameFirstVSAN := make(map[string]int)
+	collisionWarned := make(map[string]bool)
 
 	for _, line := range lines {
 		// CRITICAL ORDER: IVR must come before zone checks (IVR lines contain "zone name")
@@ -172,15 +170,15 @@ func pass2BuildZones(lines []string, cfg *ir.ZoningConfig) {
 			var vsan int
 			fmt.Sscanf(m[2], "%d", &vsan)
 
-			// Track VSANs for multi-VSAN warning
-			if !seenVSANs[vsan] {
-				seenVSANs[vsan] = true
-				if len(seenVSANs) == 2 {
-					cfg.Warnings = append(cfg.Warnings, fmt.Sprintf(
-						"multi-VSAN config detected (%d VSANs) — zones are VSAN-scoped; all converted to single Brocade fabric",
-						len(seenVSANs),
-					))
-				}
+			if firstVSAN, seen := zoneNameFirstVSAN[name]; seen && firstVSAN != vsan && !collisionWarned[name] {
+				cfg.Warnings = append(cfg.Warnings, fmt.Sprintf(
+					"zone name %q appears in VSAN %d and VSAN %d — Brocade zone names are fabric-wide; the output will contain conflicting zonecreate lines for %q unless you scope with --vsan",
+					name, firstVSAN, vsan, name,
+				))
+				collisionWarned[name] = true
+			}
+			if _, seen := zoneNameFirstVSAN[name]; !seen {
+				zoneNameFirstVSAN[name] = vsan
 			}
 
 			key := fmt.Sprintf("%s@vsan%d", name, vsan)
@@ -204,17 +202,6 @@ func pass2BuildZones(lines []string, cfg *ir.ZoningConfig) {
 			name := m[1]
 			var vsan int
 			fmt.Sscanf(m[2], "%d", &vsan)
-
-			// Track VSANs for multi-VSAN warning
-			if !seenVSANs[vsan] {
-				seenVSANs[vsan] = true
-				if len(seenVSANs) == 2 {
-					cfg.Warnings = append(cfg.Warnings, fmt.Sprintf(
-						"multi-VSAN config detected (%d VSANs) — zones are VSAN-scoped; all converted to single Brocade fabric",
-						len(seenVSANs),
-					))
-				}
-			}
 
 			key := fmt.Sprintf("%s@vsan%d", name, vsan)
 			zc := &ir.ZoneConfig{Name: name, VSAN: vsan}
@@ -248,6 +235,40 @@ func pass2BuildZones(lines []string, cfg *ir.ZoningConfig) {
 				currentZoneset.ZoneNames = append(currentZoneset.ZoneNames, m[1])
 			}
 		}
+	}
+
+	// Emit one multi-VSAN breakdown warning if the input spans more than one VSAN.
+	// Counts come from the deduplicated IR maps, so a config that appears twice in
+	// the input (e.g. "show zoneset active" + "show running-config") is counted once.
+	zoneCountByVSAN := make(map[int]int)
+	for _, z := range cfg.Zones {
+		zoneCountByVSAN[z.VSAN]++
+	}
+	zonesetCountByVSAN := make(map[int]int)
+	for _, zc := range cfg.ZoneConfigs {
+		zonesetCountByVSAN[zc.VSAN]++
+	}
+	vsanSet := make(map[int]struct{})
+	for v := range zoneCountByVSAN {
+		vsanSet[v] = struct{}{}
+	}
+	for v := range zonesetCountByVSAN {
+		vsanSet[v] = struct{}{}
+	}
+	if len(vsanSet) > 1 {
+		vsans := make([]int, 0, len(vsanSet))
+		for v := range vsanSet {
+			vsans = append(vsans, v)
+		}
+		sort.Ints(vsans)
+		parts := make([]string, 0, len(vsans))
+		for _, v := range vsans {
+			parts = append(parts, fmt.Sprintf("VSAN %d (%d zones, %d zonesets)", v, zoneCountByVSAN[v], zonesetCountByVSAN[v]))
+		}
+		cfg.Warnings = append(cfg.Warnings, fmt.Sprintf(
+			"multi-VSAN input: %s — all merged into one Brocade fabric; pass --vsan N to scope to one",
+			strings.Join(parts, ", "),
+		))
 	}
 }
 

@@ -7,6 +7,18 @@ linters:
   default: standard
   enable:
     - misspell
+  settings:
+    errcheck:
+      # Ignoring these is intentional and idiomatic for an offline CLI tool:
+      #   fmt.Fprint*  — writing converted output / warnings to stdout/stderr
+      #   fmt.Sscanf   — parsing a VSAN number already matched as \d+ by regexp
+      #   (*os.File).Close — deferred close of files opened for read/write here
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - fmt.Sscanf
+        - (*os.File).Close
 
 formatters:
   enable:
@@ -19,5 +31,3 @@ run:
 issues:
   max-issues-per-linter: 50
   max-same-issues: 3
-  exclude-dirs:
-    - vendor

@@ -21,12 +21,14 @@ Reverse direction: brocade2mds (FOS cfgshow/script to NX-OS CLI commands)`,
 		outputFile, _ := cmd.Flags().GetString("output")
 		scriptFile, _ := cmd.Flags().GetString("script")
 		fosVersion, _ := cmd.Flags().GetString("fos-version")
+		vsan, _ := cmd.Flags().GetInt("vsan")
 		return converter.Run(converter.Options{
 			InputFile:  args[0],
 			Direction:  direction,
 			OutputFile: outputFile,
 			ScriptFile: scriptFile,
 			FOSVersion: fosVersion,
+			VSAN:       vsan,
 		}, os.Stdout, os.Stderr)
 	},
 }
@@ -49,4 +51,5 @@ func init() {
 	rootCmd.Flags().String("output", "", "write primary output to file (default: stdout)")
 	rootCmd.Flags().String("script", "", "also write executable shell script to file (mds2brocade only)")
 	rootCmd.Flags().String("fos-version", "8.1+", "target FOS naming rules (pre-8.1 or 8.1+)")
+	rootCmd.Flags().Int("vsan", 0, "target VSAN to convert; 0 = convert all VSANs into one fabric")
 }

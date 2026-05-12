@@ -20,6 +20,7 @@ cfgenable is present as a commented-out line requiring human confirmation.`,
 		outputFile, _ := cmd.Flags().GetString("output")
 		scriptFile, _ := cmd.Flags().GetString("script")
 		fosVersion, _ := cmd.Flags().GetString("fos-version")
+		vsan, _ := cmd.Flags().GetInt("vsan")
 
 		return converter.Run(converter.Options{
 			InputFile:  args[0],
@@ -27,6 +28,7 @@ cfgenable is present as a commented-out line requiring human confirmation.`,
 			OutputFile: outputFile,
 			ScriptFile: scriptFile,
 			FOSVersion: fosVersion,
+			VSAN:       vsan,
 		}, os.Stdout, os.Stderr)
 	},
 }
@@ -37,4 +39,5 @@ func init() {
 	mds2brocadeCmd.Flags().String("output", "", "write primary output to file (default: stdout)")
 	mds2brocadeCmd.Flags().String("script", "", "also write executable shell script to file")
 	mds2brocadeCmd.Flags().String("fos-version", "8.1+", "target FOS naming rules (pre-8.1 or 8.1+)")
+	mds2brocadeCmd.Flags().Int("vsan", 0, "target VSAN to convert; 0 = convert all VSANs into one fabric")
 }
