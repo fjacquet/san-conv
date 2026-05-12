@@ -72,6 +72,25 @@ san-conv mds-config.txt --output fos-commands.txt
 san-conv brocade-config.txt --direction brocade2mds
 ```
 
+#### Peer zones and smart zoning (Brocade → MDS)
+
+If the Brocade config contains peer zones — either `zonecreate --peerzone` in
+a CLI script, or the `00:02:…` property-member form in cfgshow output —
+`brocade2mds` round-trips them to MDS **smart zoning**:
+
+- `-principal` members come back as `member <type> <name> target`
+- non-principal (`-members`) members come back as `member <type> <name> init`
+- The output includes `zone smart-zoning enable vsan <N>` for each VSAN that
+  has a roled zone, so the role keywords take effect when pasted into NX-OS.
+
+cfgshow peer-zone decoding is best-effort: if the property-member marker
+(`00:02:…`) contains an unexpected principal count, the marker is dropped, the
+zone is emitted as a plain zone (no roles), and a `WARN:` line is printed.
+Review warnings before applying the output to a switch.
+
+Plain (non-peer) zones are emitted exactly as before — no smart-zoning lines
+or role suffixes appear unless the input contains peer zones.
+
 ### Generate a deployable shell script
 
 The `--script` flag produces an executable script with safe FOS preamble and postamble:

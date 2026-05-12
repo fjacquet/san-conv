@@ -171,6 +171,156 @@ func TestParse(t *testing.T) {
 	}
 }
 
+func TestParse_PeerZones(t *testing.T) {
+	t.Parallel()
+
+	t.Run("CLI single principal alias members", func(t *testing.T) {
+		t.Parallel()
+		input := "alicreate \"TGT1\", \"50:00:00:00:00:00:00:01\"\n" +
+			"zonecreate --peerzone \"PZ\" -principal \"TGT1\" -members \"ESX1;ESX2\"\n"
+		cfg, err := Parse(strings.NewReader(input))
+		require.NoError(t, err)
+		z, ok := cfg.Zones["PZ"]
+		require.True(t, ok, "zone PZ must exist")
+		require.Len(t, z.Members, 3, "PZ must have 3 members")
+		require.Equal(t, "alias", z.Members[0].Type)
+		require.Equal(t, "TGT1", z.Members[0].Value)
+		require.Equal(t, "target", z.Members[0].Role)
+		require.Equal(t, "alias", z.Members[1].Type)
+		require.Equal(t, "ESX1", z.Members[1].Value)
+		require.Equal(t, "init", z.Members[1].Role)
+		require.Equal(t, "alias", z.Members[2].Type)
+		require.Equal(t, "ESX2", z.Members[2].Value)
+		require.Equal(t, "init", z.Members[2].Role)
+	})
+
+	t.Run("CLI multiple principals and pwwn members", func(t *testing.T) {
+		t.Parallel()
+		input := "zonecreate --peerzone \"PZ2\" -principal \"50:00:00:00:00:00:00:01;50:00:00:00:00:00:00:02\" -members \"10:00:00:00:c9:00:00:01\"\n"
+		cfg, err := Parse(strings.NewReader(input))
+		require.NoError(t, err)
+		z, ok := cfg.Zones["PZ2"]
+		require.True(t, ok, "zone PZ2 must exist")
+		require.Len(t, z.Members, 3, "PZ2 must have 3 members")
+		require.Equal(t, "pwwn", z.Members[0].Type)
+		require.Equal(t, "50:00:00:00:00:00:00:01", z.Members[0].Value)
+		require.Equal(t, "target", z.Members[0].Role)
+		require.Equal(t, "pwwn", z.Members[1].Type)
+		require.Equal(t, "50:00:00:00:00:00:00:02", z.Members[1].Value)
+		require.Equal(t, "target", z.Members[1].Role)
+		require.Equal(t, "pwwn", z.Members[2].Type)
+		require.Equal(t, "10:00:00:00:c9:00:00:01", z.Members[2].Value)
+		require.Equal(t, "init", z.Members[2].Role)
+	})
+
+	t.Run("CLI no -members clause", func(t *testing.T) {
+		t.Parallel()
+		input := "zonecreate --peerzone \"PZ3\" -principal \"TGT1\"\n"
+		cfg, err := Parse(strings.NewReader(input))
+		require.NoError(t, err)
+		z, ok := cfg.Zones["PZ3"]
+		require.True(t, ok, "zone PZ3 must exist")
+		require.Len(t, z.Members, 1, "PZ3 must have 1 member")
+		require.Equal(t, "alias", z.Members[0].Type)
+		require.Equal(t, "TGT1", z.Members[0].Value)
+		require.Equal(t, "target", z.Members[0].Role)
+	})
+
+	t.Run("CLI fixture file mixed peer and plain zones", func(t *testing.T) {
+		t.Parallel()
+		fixturePath := filepath.Join("..", "..", "..", "testdata", "brocade", "peerzone_cli.cfg")
+		f, err := os.Open(fixturePath)
+		require.NoError(t, err, "failed to open fixture peerzone_cli.cfg")
+		defer f.Close() //nolint:errcheck
+
+		cfg, err := Parse(f)
+		require.NoError(t, err)
+		require.NotNil(t, cfg)
+
+		// Peer zone has roled members
+		pz, ok := cfg.Zones["TGT1_peerzone"]
+		require.True(t, ok, "zone TGT1_peerzone must exist")
+		require.Len(t, pz.Members, 3, "TGT1_peerzone must have 3 members")
+		require.Equal(t, "target", pz.Members[0].Role, "first member must be target")
+		require.Equal(t, "init", pz.Members[1].Role, "second member must be init")
+		require.Equal(t, "init", pz.Members[2].Role, "third member must be init")
+
+		// Plain zone has no roles
+		plain, ok := cfg.Zones["PlainZone"]
+		require.True(t, ok, "zone PlainZone must exist")
+		require.Len(t, plain.Members, 2, "PlainZone must have 2 members")
+		require.Equal(t, "", plain.Members[0].Role, "PlainZone member[0] must have no role")
+		require.Equal(t, "", plain.Members[1].Role, "PlainZone member[1] must have no role")
+
+		// ZoneConfig includes both zones
+		prod, ok := cfg.ZoneConfigs["Prod"]
+		require.True(t, ok, "cfg Prod must exist")
+		require.Equal(t, []string{"TGT1_peerzone", "PlainZone"}, prod.ZoneNames)
+	})
+
+	t.Run("cfgshow good marker", func(t *testing.T) {
+		t.Parallel()
+		fixturePath := filepath.Join("..", "..", "..", "testdata", "brocade", "peerzone_cfgshow.cfg")
+		f, err := os.Open(fixturePath)
+		require.NoError(t, err, "failed to open fixture peerzone_cfgshow.cfg")
+		defer f.Close() //nolint:errcheck
+
+		cfg, err := Parse(f)
+		require.NoError(t, err)
+		require.NotNil(t, cfg)
+
+		// pz1: marker dropped, 1 target + 1 init
+		pz1, ok := cfg.Zones["pz1"]
+		require.True(t, ok, "zone pz1 must exist")
+		require.Len(t, pz1.Members, 2, "pz1 must have 2 members (marker dropped)")
+		require.Equal(t, "pwwn", pz1.Members[0].Type)
+		require.Equal(t, "50:05:07:61:01:23:45:67", pz1.Members[0].Value)
+		require.Equal(t, "target", pz1.Members[0].Role)
+		require.Equal(t, "pwwn", pz1.Members[1].Type)
+		require.Equal(t, "10:00:00:00:c9:ab:cd:ef", pz1.Members[1].Value)
+		require.Equal(t, "init", pz1.Members[1].Role)
+
+		// PlainZone: no roles
+		plain, ok := cfg.Zones["PlainZone"]
+		require.True(t, ok, "zone PlainZone must exist")
+		require.Len(t, plain.Members, 2, "PlainZone must have 2 members")
+		require.Equal(t, "", plain.Members[0].Role, "PlainZone member[0] must have no role")
+		require.Equal(t, "", plain.Members[1].Role, "PlainZone member[1] must have no role")
+
+		// No warnings about the marker
+		for _, w := range cfg.Warnings {
+			require.NotContains(t, w, "peer-zone property marker", "no marker warning expected for valid marker")
+		}
+	})
+
+	t.Run("cfgshow bad marker over-claiming principals", func(t *testing.T) {
+		t.Parallel()
+		const input = `Defined configuration:
+ zone:  bad
+                00:02:00:00:00:09:00:00; 50:05:07:61:01:23:45:67; 10:00:00:00:c9:ab:cd:ef
+`
+		cfg, err := Parse(strings.NewReader(input))
+		require.NoError(t, err)
+
+		bad, ok := cfg.Zones["bad"]
+		require.True(t, ok, "zone bad must exist")
+		// Marker is dropped; remaining 2 members have no roles (fallback to plain zone)
+		require.Len(t, bad.Members, 2, "bad zone must have 2 members after marker dropped")
+		require.Equal(t, "", bad.Members[0].Role, "fallback: no role assigned")
+		require.Equal(t, "", bad.Members[1].Role, "fallback: no role assigned")
+
+		// Warning must mention the marker and decode failure
+		found := false
+		for _, w := range cfg.Warnings {
+			if strings.Contains(w, "peer-zone property marker") && strings.Contains(w, "did not decode") {
+				found = true
+				break
+			}
+		}
+		require.True(t, found, "expected warning about bad marker, got: %v", cfg.Warnings)
+	})
+}
+
 func TestParse_TerminalArtifacts(t *testing.T) {
 	t.Parallel()
 

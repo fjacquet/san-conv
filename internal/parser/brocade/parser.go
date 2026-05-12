@@ -1,8 +1,10 @@
 package brocade
 
 import (
+	"fmt"
 	"io"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/fjacquet/san-conv/internal/ir"
@@ -34,6 +36,12 @@ var (
 	reAliCreate  = regexp.MustCompile(`^alicreate\s+"([^"]+)"\s*,\s*"([^"]+)"`)
 	reZoneCreate = regexp.MustCompile(`^zonecreate\s+"([^"]+)"\s*,\s*"([^"]+)"`)
 	reCfgCreate  = regexp.MustCompile(`^cfgcreate\s+"([^"]+)"\s*,\s*"([^"]+)"`)
+
+	// CLI peer zone form: zonecreate --peerzone "name" -principal "..." [-members "..."]
+	reZoneCreatePeer = regexp.MustCompile(`^zonecreate\s+--peerzone\s+"([^"]+)"\s+-principal\s+"([^"]*)"(?:\s+-members\s+"([^"]*)")?`)
+
+	// cfgshow peer-zone property member WWN: 00:02:00:00:NN:NN:00:00
+	rePeerMarker = regexp.MustCompile(`^00:02:00:00:([0-9a-fA-F]{2}):([0-9a-fA-F]{2}):00:00$`)
 
 	// CLI format detection
 	reCLICommand = regexp.MustCompile(`^(alicreate|zonecreate|cfgcreate)\s+`)
@@ -165,6 +173,47 @@ func parseCfgshowFormat(lines []string, cfg *ir.ZoningConfig) {
 			appendMembers(members, state, currentCfg, currentZone, currentAlias)
 		}
 	}
+
+	resolvePeerZoneMarkers(cfg)
+}
+
+// resolvePeerZoneMarkers reinterprets cfgshow zones whose first member is a
+// Brocade peer-zone "property member" WWN (00:02:00:00:NN:NN:00:00, where
+// NN:NN is the principal count, big-endian). The marker is dropped; the first
+// <count> remaining members become principals (Role "target"), the rest
+// non-principals (Role "init"). If the count doesn't decode sensibly, the
+// marker is dropped and the zone is left as a plain zone with a warning.
+func resolvePeerZoneMarkers(cfg *ir.ZoningConfig) {
+	for key, z := range cfg.Zones {
+		if len(z.Members) == 0 || z.Members[0].Type != "pwwn" {
+			continue
+		}
+		mm := rePeerMarker.FindStringSubmatch(z.Members[0].Value)
+		if mm == nil {
+			continue
+		}
+		hi, _ := strconv.ParseInt(mm[1], 16, 0)
+		lo, _ := strconv.ParseInt(mm[2], 16, 0)
+		count := int(hi)*256 + int(lo)
+		rest := z.Members[1:] // drop the marker
+		if count <= 0 || count > len(rest) {
+			cfg.Warnings = append(cfg.Warnings, fmt.Sprintf(
+				"zone %q: peer-zone property marker %q did not decode (claims %d principals, zone has %d members) — emitted as a plain zone, review",
+				z.Name, z.Members[0].Value, count, len(rest)))
+			z.Members = rest
+			cfg.Zones[key] = z
+			continue
+		}
+		for i, m := range rest {
+			if i < count {
+				m.Role = "target"
+			} else {
+				m.Role = "init"
+			}
+		}
+		z.Members = rest
+		cfg.Zones[key] = z
+	}
 }
 
 // appendMembers dispatches parsed member tokens to the appropriate current
@@ -212,6 +261,28 @@ func parseCLIFormat(lines []string, cfg *ir.ZoningConfig) {
 			name := m[1]
 			pwwn := normalizeWWN(m[2])
 			cfg.Aliases[name] = &ir.Alias{Name: name, PWWN: pwwn, VSAN: 0}
+			continue
+		}
+
+		if m := reZoneCreatePeer.FindStringSubmatch(trimmed); m != nil {
+			name := m[1]
+			z := &ir.Zone{Name: name, VSAN: 0}
+			addPeerMembers := func(list, role string) {
+				for _, raw := range strings.Split(list, ";") {
+					tok := strings.TrimSpace(raw)
+					if tok == "" {
+						continue
+					}
+					if looksLikeWWN(tok) {
+						z.Members = append(z.Members, &ir.ZoneMember{Type: "pwwn", Value: normalizeWWN(tok), Role: role})
+					} else {
+						z.Members = append(z.Members, &ir.ZoneMember{Type: "alias", Value: tok, Role: role})
+					}
+				}
+			}
+			addPeerMembers(m[2], "target") // -principal
+			addPeerMembers(m[3], "init")   // -members (m[3] is "" if the clause is absent)
+			cfg.Zones[name] = z
 			continue
 		}
 
