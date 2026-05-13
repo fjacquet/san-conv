@@ -40,8 +40,6 @@ cfgenable is present as a commented-out line requiring human confirmation.`,
 }
 
 func init() {
-	// Flags will be added in Phase 7 (CLI Wiring)
-	// Stub them here as empty declarations so --help shows them
 	mds2brocadeCmd.Flags().String("output", "", "write primary output to file (default: stdout)")
 	mds2brocadeCmd.Flags().String("script", "", "also write executable shell script to file")
 	mds2brocadeCmd.Flags().String("fos-version", "8.1+", "target FOS naming rules (pre-8.1 or 8.1+)")
