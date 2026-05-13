@@ -337,3 +337,71 @@ func TestEmit(t *testing.T) {
 		})
 	}
 }
+
+func TestEmit_SmartZoning(t *testing.T) {
+	t.Parallel()
+
+	t.Run("roled alias members get role suffix and smart-zoning enable", func(t *testing.T) {
+		t.Parallel()
+		cfg := makeCfg()
+		cfg.Zones["PZ"] = makeZone("PZ",
+			&ir.ZoneMember{Type: "alias", Value: "TGT1", Role: "target"},
+			&ir.ZoneMember{Type: "alias", Value: "ESX1", Role: "init"},
+			&ir.ZoneMember{Type: "alias", Value: "ESX2", Role: "init"},
+		)
+		var buf bytes.Buffer
+		require.NoError(t, Emit(cfg, &buf))
+		out := buf.String()
+		require.Contains(t, out, "zone smart-zoning enable vsan 1")
+		require.Contains(t, out, "  member device-alias TGT1 target")
+		require.Contains(t, out, "  member device-alias ESX1 init")
+		require.Contains(t, out, "  member device-alias ESX2 init")
+	})
+
+	t.Run("both role emitted literally", func(t *testing.T) {
+		t.Parallel()
+		cfg := makeCfg()
+		cfg.Zones["PZ"] = makeZone("PZ",
+			&ir.ZoneMember{Type: "alias", Value: "X", Role: "both"},
+		)
+		var buf bytes.Buffer
+		require.NoError(t, Emit(cfg, &buf))
+		require.Contains(t, buf.String(), "  member device-alias X both")
+	})
+
+	t.Run("two roled zones in different VSANs both get smart-zoning enable, sorted", func(t *testing.T) {
+		t.Parallel()
+		cfg := makeCfg()
+		cfg.Zones["Z7"] = makeZoneVSAN("Z7", 7,
+			&ir.ZoneMember{Type: "pwwn", Value: "50:00:00:00:00:00:00:07", Role: "target"},
+		)
+		cfg.Zones["Z9"] = makeZoneVSAN("Z9", 9,
+			&ir.ZoneMember{Type: "pwwn", Value: "50:00:00:00:00:00:00:09", Role: "init"},
+		)
+		var buf bytes.Buffer
+		require.NoError(t, Emit(cfg, &buf))
+		out := buf.String()
+		require.Contains(t, out, "zone smart-zoning enable vsan 7")
+		require.Contains(t, out, "zone smart-zoning enable vsan 9")
+		// 7 must appear before 9
+		pos7 := strings.Index(out, "zone smart-zoning enable vsan 7")
+		pos9 := strings.Index(out, "zone smart-zoning enable vsan 9")
+		require.Less(t, pos7, pos9, "vsan 7 smart-zoning enable must appear before vsan 9")
+	})
+
+	t.Run("plain zone no roles: no smart-zoning enable emitted", func(t *testing.T) {
+		t.Parallel()
+		cfg := makeCfg()
+		cfg.Zones["Plain"] = makeZone("Plain",
+			makeMember("alias", "host_01"),
+			makeMember("pwwn", "50:05:07:61:01:23:45:67"),
+		)
+		var buf bytes.Buffer
+		require.NoError(t, Emit(cfg, &buf))
+		out := buf.String()
+		require.NotContains(t, out, "zone smart-zoning enable")
+		require.NotContains(t, out, " target")
+		require.NotContains(t, out, " init")
+		require.NotContains(t, out, " both")
+	})
+}

@@ -38,6 +38,41 @@ func Emit(cfg *ir.ZoningConfig, w io.Writer) error {
 		fmt.Fprintln(w)
 	}
 
+	// --- Smart-zoning enable pass -------------------------------------------
+	// Collect VSANs that have at least one roled zone with valid members.
+	// For each such VSAN emit "zone smart-zoning enable vsan N" so NX-OS
+	// actually honours the role keywords.
+	smartVSANs := make(map[int]bool)
+	for _, zone := range cfg.Zones {
+		vsan := zone.VSAN
+		if vsan == 0 {
+			vsan = defaultVSAN
+		}
+		var hasValid, hasRole bool
+		for _, m := range zone.Members {
+			if m.Type != "unsupported" {
+				hasValid = true
+			}
+			if m.Role != "" {
+				hasRole = true
+			}
+		}
+		if hasValid && hasRole {
+			smartVSANs[vsan] = true
+		}
+	}
+	if len(smartVSANs) > 0 {
+		smartKeys := make([]int, 0, len(smartVSANs))
+		for v := range smartVSANs {
+			smartKeys = append(smartKeys, v)
+		}
+		sort.Ints(smartKeys)
+		for _, v := range smartKeys {
+			fmt.Fprintf(w, "zone smart-zoning enable vsan %d\n", v)
+		}
+		fmt.Fprintln(w)
+	}
+
 	// --- Zones section (CONV-05) ----------------------------------------------
 	// emittedZones tracks which zones were actually written so the zoneset
 	// section can filter out skipped zones.
@@ -74,12 +109,19 @@ func Emit(cfg *ir.ZoningConfig, w io.Writer) error {
 		// Use zone.Name (struct field) — NEVER the map key (may be name@vsanN).
 		fmt.Fprintf(w, "zone name %s vsan %d\n", zone.Name, vsan)
 		for _, m := range zone.Members {
+			var kind string
 			switch m.Type {
 			case "alias":
-				fmt.Fprintf(w, "  member device-alias %s\n", m.Value)
+				kind = "device-alias"
 			case "pwwn":
-				fmt.Fprintf(w, "  member pwwn %s\n", m.Value)
-				// "unsupported" members are silently skipped — already warned above or at parse time.
+				kind = "pwwn"
+			default:
+				continue // "unsupported" — silently skipped, as before
+			}
+			if m.Role != "" {
+				fmt.Fprintf(w, "  member %s %s %s\n", kind, m.Value, m.Role)
+			} else {
+				fmt.Fprintf(w, "  member %s %s\n", kind, m.Value)
 			}
 		}
 		fmt.Fprintln(w)

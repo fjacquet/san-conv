@@ -344,6 +344,61 @@ func TestRun_HygieneDanglingRef(t *testing.T) {
 	require.Contains(t, stderr.String(), `member alias "MissingTarget" is not defined — dangling reference`)
 }
 
+// TestRun_Brocade2MDS_PeerZone: a brocade CLI file with a --peerzone zone
+// round-trips back to MDS smart zoning with the correct role keywords and
+// zone smart-zoning enable vsan N line.
+func TestRun_Brocade2MDS_PeerZone(t *testing.T) {
+	t.Parallel()
+	var stdout, stderr bytes.Buffer
+	opts := Options{
+		InputFile: "../../testdata/brocade/peerzone_cli.cfg",
+		Direction: "brocade2mds",
+	}
+	err := Run(opts, &stdout, &stderr)
+	require.NoError(t, err)
+	out := stdout.String()
+	require.Contains(t, out, "zone smart-zoning enable vsan 1")
+	require.Contains(t, out, "zone name TGT1_peerzone vsan 1")
+	require.Contains(t, out, "  member device-alias TGT1 target")
+	require.Contains(t, out, "  member device-alias ESX1 init")
+}
+
+// TestRun_RoundTrip_SmartZone: mds2brocade → file → brocade2mds → MDS smart zoning
+// must produce correct smart-zoning enable and roled member lines.
+// Note: the MDS `both` role maps to -principal in mds2brocade (connectivity-safe),
+// then brocade2mds maps -principal back to `target` — so `both` becomes `target`
+// after a round-trip. This is expected and documented in ADR-0010.
+func TestRun_RoundTrip_SmartZone(t *testing.T) {
+	t.Parallel()
+	tmp := filepath.Join(t.TempDir(), "brocade.txt")
+	var b1, b2 bytes.Buffer
+	err := Run(Options{
+		InputFile:  "../../testdata/mds/smart_zoning.cfg",
+		Direction:  "mds2brocade",
+		OutputFile: tmp,
+	}, &b1, &b2)
+	require.NoError(t, err, "mds2brocade must succeed")
+
+	var out, errBuf bytes.Buffer
+	err = Run(Options{
+		InputFile: tmp,
+		Direction: "brocade2mds",
+	}, &out, &errBuf)
+	require.NoError(t, err, "brocade2mds must succeed")
+
+	result := out.String()
+	require.Contains(t, result, "zone smart-zoning enable vsan 1")
+	require.Contains(t, result, "zone name SmartZone vsan 1")
+	// target member comes back as target
+	require.Contains(t, result, "  member pwwn 50:06:0e:80:04:7c:00:01 target")
+	// init member comes back as init
+	require.Contains(t, result, "  member pwwn 50:05:0c:00:00:c8:aa:50 init")
+	// SmartAliases zone
+	require.Contains(t, result, "zone name SmartAliases vsan 1")
+	require.Contains(t, result, "  member device-alias Array-Port target")
+	require.Contains(t, result, "  member device-alias Host-A init")
+}
+
 // Test 10: stderr summary line format matches expected pattern.
 // Pattern: "Summary: N aliases, N zones, N configs converted; N warnings"
 func TestRun_StderrSummaryFormat(t *testing.T) {
