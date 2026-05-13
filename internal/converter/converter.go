@@ -30,7 +30,7 @@ type Options struct {
 	// BrocadeConsolidate, when true (brocade2mds only), collapses flat
 	// single-initiator/single-target Brocade zones into per-target MDS smart
 	// zones, mirroring --peer-consolidate in the other direction. Shares
-	// ConsolidateReport and ConsolidateStrict with the Brocade-direction flag.
+	// ConsolidateReport and ConsolidateStrict with --peer-consolidate.
 	BrocadeConsolidate bool
 	// ConsolidateReport, if non-empty, is a path to write the consolidation verification report to.
 	ConsolidateReport string
@@ -180,10 +180,12 @@ func writeConsolidateReport(path string, report consolidator.Report, kind string
 	zoneWord := "peer zone"
 	headingWord := "Peer zones"
 	principalWord := "-principal"
+	labelWord := "target/principal"
 	if kind == "smart" {
 		zoneWord = "smart zone"
 		headingWord = "Smart zones"
 		principalWord = "target-role"
+		labelWord = "target"
 	}
 
 	fmt.Fprintf(f, "# %s consolidation report\n\n", headingWord)
@@ -199,8 +201,8 @@ func writeConsolidateReport(path string, report consolidator.Report, kind string
 	}
 	for _, pz := range report.Zones {
 		fmt.Fprintf(f, "%s %q (VSAN %d)\n", zoneWord, pz.NewName, pz.VSAN)
-		fmt.Fprintf(f, "  target/principal: %s\n", pz.Target)
-		fmt.Fprintf(f, "  members:          %s\n", strings.Join(pz.Members, ", "))
+		fmt.Fprintf(f, "  %-17s %s\n", labelWord+":", pz.Target)
+		fmt.Fprintf(f, "  %-17s %s\n", "members:", strings.Join(pz.Members, ", "))
 		fmt.Fprintf(f, "  collapsed %d flat zone(s): %s\n\n", len(pz.SourceZones), strings.Join(pz.SourceZones, ", "))
 	}
 	fmt.Fprintf(f, "## Zones left flat (%d)\n\n", len(report.Skipped))

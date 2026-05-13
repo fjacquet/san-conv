@@ -422,6 +422,7 @@ func TestRun_StderrSummaryFormat(t *testing.T) {
 }
 
 func TestRun_Brocade2MDS_SmartConsolidate(t *testing.T) {
+	t.Parallel()
 	var stdout, stderr bytes.Buffer
 	err := Run(Options{
 		InputFile:          "../../testdata/brocade/cli_flat_zones.cfg",
@@ -446,7 +447,10 @@ func TestRun_Brocade2MDS_SmartConsolidate(t *testing.T) {
 	require.Contains(t, out, "zone name TGT2_smartzone vsan 1")
 	require.Contains(t, out, "  member device-alias TGT2 target")
 
-	// The SRDF replication zone (DR_REPL_A / DR_REPL_B both freq=1) stays flat.
+	// The SRDF replication zone stays flat: only DR_REPL_B is a trailing
+	// component of the zone name, so the classifier infers target=DR_REPL_B;
+	// but DR_REPL_B appears in only 1 candidate zone, so the frequency veto
+	// kicks in (tgtFreq < 2).
 	require.Contains(t, out, "zone name SRDF_DR_REPL_A_DR_REPL_B vsan 1",
 		"single-occurrence zone should be left flat")
 	require.NotContains(t, out, "DR_REPL_A_smartzone")
@@ -469,7 +473,81 @@ func TestRun_Brocade2MDS_SmartConsolidate(t *testing.T) {
 		"Consolidated 5 flat zones into 2 smart zones; ")
 }
 
+// --consolidate-report writes a non-empty smart-zones report file when
+// --smart-consolidate is on; vocabulary and direction-specific preamble
+// must reflect the brocade2mds (smart-zone) direction.
+func TestRun_Brocade2MDS_ConsolidateReport(t *testing.T) {
+	t.Parallel()
+	reportFile := filepath.Join(t.TempDir(), "report.txt")
+	var stdout, stderr bytes.Buffer
+	opts := Options{
+		InputFile:          "../../testdata/brocade/cli_flat_zones.cfg",
+		Direction:          "brocade2mds",
+		BrocadeConsolidate: true,
+		ConsolidateReport:  reportFile,
+	}
+	err := Run(opts, &stdout, &stderr)
+	require.NoError(t, err)
+
+	info, statErr := os.Stat(reportFile)
+	require.NoError(t, statErr)
+	require.Greater(t, info.Size(), int64(0), "report file must be non-empty")
+
+	content, readErr := os.ReadFile(reportFile)
+	require.NoError(t, readErr)
+	s := string(content)
+
+	// Heading + body vocabulary use the smart-zone words.
+	require.Contains(t, s, "Smart zones consolidation report")
+	require.Contains(t, s, `smart zone "TGT1_smartzone"`)
+	// Preamble names the target-role member (MDS direction phrasing).
+	require.Contains(t, s, "(the target-role member)")
+
+	// Peer-direction vocabulary must NOT leak into the smart report.
+	require.NotContains(t, s, `peer zone "`)
+	require.NotContains(t, s, "(the -principal member)")
+}
+
+// --consolidate-strict in brocade2mds rejects trailing-component matches
+// that are not exact <init>_<target>: relaxed mode merges them, strict
+// mode leaves them flat.
+func TestRun_Brocade2MDS_ConsolidateStrict(t *testing.T) {
+	t.Parallel()
+
+	// Relaxed (default): trailing-component classifier merges the two
+	// three-component-name zones into TGT1_smartzone.
+	var stdoutRelaxed, stderrRelaxed bytes.Buffer
+	err := Run(Options{
+		InputFile:          "../../testdata/brocade/cli_flat_zones_strict.cfg",
+		Direction:          "brocade2mds",
+		BrocadeConsolidate: true,
+	}, &stdoutRelaxed, &stderrRelaxed)
+	require.NoError(t, err)
+	relaxed := stdoutRelaxed.String()
+	require.Contains(t, relaxed, "zone smart-zoning enable vsan 1")
+	require.Contains(t, relaxed, "zone name TGT1_smartzone vsan 1")
+	require.Contains(t, relaxed, "  member device-alias TGT1 target")
+	require.Contains(t, relaxed, "  member device-alias ESX1 init")
+	require.Contains(t, relaxed, "  member device-alias ESX2 init")
+
+	// Strict: zone names are not exact <init>_<target> form, so the
+	// strict classifier leaves them flat — no smart zone is produced.
+	var stdoutStrict, stderrStrict bytes.Buffer
+	err = Run(Options{
+		InputFile:          "../../testdata/brocade/cli_flat_zones_strict.cfg",
+		Direction:          "brocade2mds",
+		BrocadeConsolidate: true,
+		ConsolidateStrict:  true,
+	}, &stdoutStrict, &stderrStrict)
+	require.NoError(t, err)
+	strict := stdoutStrict.String()
+	require.NotContains(t, strict, "TGT1_smartzone")
+	require.Contains(t, strict, "zone name ESX1_HBA0_TGT1 vsan 1")
+	require.Contains(t, strict, "zone name ESX2_HBA0_TGT1 vsan 1")
+}
+
 func TestRun_Brocade2MDS_NoSmartConsolidate_IsUnchanged(t *testing.T) {
+	t.Parallel()
 	var stdoutWith, stdoutWithout bytes.Buffer
 	require.NoError(t, Run(Options{
 		InputFile: "../../testdata/brocade/cli_flat_zones.cfg",

@@ -344,6 +344,7 @@ func TestConsolidate_BothMembersTrailing_LeftFlat(t *testing.T) {
 }
 
 func TestConsolidate_HonorsNameSuffix(t *testing.T) {
+	t.Parallel()
 	cfg := &ir.ZoningConfig{
 		Aliases: map[string]*ir.Alias{
 			"TGT1": {Name: "TGT1", PWWN: "50:00:00:00:00:00:00:01"},
