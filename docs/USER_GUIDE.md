@@ -117,7 +117,7 @@ The script contains:
 | `--script` | | (none) | Also write executable shell script (mds2brocade only) |
 | `--fos-version` | | `8.1+` | FOS naming rules: `8.1+` (default) or `pre-8.1` (legacy switches) |
 | `--peer-consolidate` | | false | Consolidate flat single-initiator/single-target zones into per-target Brocade peer zones (mds2brocade only; see --consolidate-report) |
-| `--smart-consolidate` | | false | Consolidate flat single-initiator/single-target zones into per-target MDS smart zones (brocade2mds only; see --consolidate-report) |
+| `--smart-consolidate` | | false | Consolidate flat single-initiator/single-target zones into per-target MDS smart zones (brocade2mds only; see --consolidate-report). `brocade2mds` also accepts `--peer-consolidate` as a hidden synonym for symmetry with `mds2brocade`. |
 | `--consolidate-report` | | (none) | With `--peer-consolidate` or `--smart-consolidate`, write the consolidation report to a file |
 | `--consolidate-strict` | | false | With `--peer-consolidate` / `--smart-consolidate`: require an exact `<host>_<target>` zone name (default: also match when the target alias is a trailing component of the zone name) |
 
@@ -233,6 +233,8 @@ available for `mds2brocade`.
 ### Consolidating Brocade flat zones into MDS smart zones
 
 `brocade2mds --smart-consolidate` is the mirror of `mds2brocade --peer-consolidate`. It collapses flat single-initiator/single-target Brocade zones into per-target MDS smart zones (one zone per storage port, target as principal, hosts as init members) and adds `zone smart-zoning enable vsan N` automatically.
+
+> **Flag-name symmetry:** `brocade2mds` also accepts `--peer-consolidate` as a hidden alias of `--smart-consolidate`, so the same flag spelling works in both directions. `--smart-consolidate` is the canonical name shown in `--help` because the resulting NX-OS construct is *smart zoning*, not peer zoning.
 
 **The heuristic is identical to `--peer-consolidate`:**
 - By default, the target alias must be a trailing component of the zone name (e.g. `ESX04_HBA0_TGT1` → target is `TGT1`).
