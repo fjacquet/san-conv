@@ -27,6 +27,11 @@ type Options struct {
 	VSAN       int // when non-zero, convert only this VSAN's zones/zonesets (mds2brocade only)
 	// Consolidate, when true (mds2brocade only), collapses flat single-initiator/single-target zones into per-target peer zones.
 	Consolidate bool
+	// BrocadeConsolidate, when true (brocade2mds only), collapses flat
+	// single-initiator/single-target Brocade zones into per-target MDS smart
+	// zones, mirroring --peer-consolidate in the other direction. Shares
+	// ConsolidateReport and ConsolidateStrict with --peer-consolidate.
+	BrocadeConsolidate bool
 	// ConsolidateReport, if non-empty, is a path to write the consolidation verification report to.
 	ConsolidateReport string
 	// ConsolidateStrict, with Consolidate, requires an exact <host>_<target> zone name; the default
@@ -74,17 +79,33 @@ func Run(opts Options, stdout io.Writer, stderr io.Writer) error {
 		filterVSAN(cfg, opts.VSAN)
 	}
 
-	// Step 2c: Optionally consolidate flat zones into per-target peer zones (mds2brocade only).
+	// Step 2c: Optionally consolidate flat zones into per-target peer zones (mds2brocade).
 	if opts.Direction == "mds2brocade" && opts.Consolidate {
-		report := consolidator.Consolidate(cfg, opts.ConsolidateStrict)
+		report := consolidator.Consolidate(cfg, opts.ConsolidateStrict, "peerzone")
 		consolidated := 0
-		for _, pz := range report.PeerZones {
-			consolidated += len(pz.SourceZones)
+		for _, cz := range report.Zones {
+			consolidated += len(cz.SourceZones)
 		}
 		fmt.Fprintf(stderr, "Consolidated %d flat zones into %d peer zones; %d zone(s) left flat\n",
-			consolidated, len(report.PeerZones), len(report.Skipped))
+			consolidated, len(report.Zones), len(report.Skipped))
 		if opts.ConsolidateReport != "" {
-			if err := writeConsolidateReport(opts.ConsolidateReport, report); err != nil {
+			if err := writeConsolidateReport(opts.ConsolidateReport, report, "peer"); err != nil {
+				return fmt.Errorf("write consolidate report %q: %w", opts.ConsolidateReport, err)
+			}
+		}
+	}
+
+	// Step 2d: Optionally consolidate flat Brocade zones into per-target MDS smart zones (brocade2mds).
+	if opts.Direction == "brocade2mds" && opts.BrocadeConsolidate {
+		report := consolidator.Consolidate(cfg, opts.ConsolidateStrict, "smartzone")
+		consolidated := 0
+		for _, cz := range report.Zones {
+			consolidated += len(cz.SourceZones)
+		}
+		fmt.Fprintf(stderr, "Consolidated %d flat zones into %d smart zones; %d zone(s) left flat\n",
+			consolidated, len(report.Zones), len(report.Skipped))
+		if opts.ConsolidateReport != "" {
+			if err := writeConsolidateReport(opts.ConsolidateReport, report, "smart"); err != nil {
 				return fmt.Errorf("write consolidate report %q: %w", opts.ConsolidateReport, err)
 			}
 		}
@@ -147,29 +168,41 @@ func Run(opts Options, stdout io.Writer, stderr io.Writer) error {
 }
 
 // writeConsolidateReport writes a human-readable consolidation report to path.
-func writeConsolidateReport(path string, report consolidator.Report) error {
+// kind is "peer" (Brocade output) or "smart" (MDS output); it only affects
+// the section heading and the rendered zone type word.
+func writeConsolidateReport(path string, report consolidator.Report, kind string) error {
 	f, err := os.Create(path) //nolint:gosec // path is an operator-supplied CLI argument
 	if err != nil {
 		return err
 	}
 	defer f.Close() //nolint:errcheck
 
-	fmt.Fprintln(f, "# Peer-zone consolidation report")
+	zoneWord := "peer zone"
+	headingWord := "Peer zones"
+	principalWord := "-principal"
+	labelWord := "target/principal"
+	if kind == "smart" {
+		zoneWord = "smart zone"
+		headingWord = "Smart zones"
+		principalWord = "target-role"
+		labelWord = "target"
+	}
+
+	fmt.Fprintf(f, "# %s consolidation report\n\n", headingWord)
+	fmt.Fprintln(f, "# Each "+zoneWord+" below is ONE storage port (the "+principalWord+" member) plus")
+	fmt.Fprintln(f, "# the hosts zoned to it — two storage ports / arrays are never combined into one")
+	fmt.Fprintln(f, "# "+zoneWord+". This turns single-initiator/single-target zoning into")
+	fmt.Fprintln(f, "# single-target/multi-initiator zoning, which the vendor recommends and which keeps")
+	fmt.Fprintln(f, "# hosts isolated from one another. Review before applying.")
 	fmt.Fprintln(f)
-	fmt.Fprintln(f, "# Each peer zone below is ONE storage port (the -principal member) plus the hosts")
-	fmt.Fprintln(f, "# zoned to it — two storage ports / arrays are never combined into one peer zone.")
-	fmt.Fprintln(f, "# This turns single-initiator/single-target zoning into single-target/multi-initiator")
-	fmt.Fprintln(f, "# (peer) zoning, which Broadcom recommends and which keeps hosts isolated from one")
-	fmt.Fprintln(f, "# another. Review before applying.")
-	fmt.Fprintln(f)
-	fmt.Fprintf(f, "## Peer zones created (%d)\n\n", len(report.PeerZones))
-	if len(report.PeerZones) == 0 {
+	fmt.Fprintf(f, "## %s created (%d)\n\n", headingWord, len(report.Zones))
+	if len(report.Zones) == 0 {
 		fmt.Fprintln(f, "(none)")
 	}
-	for _, pz := range report.PeerZones {
-		fmt.Fprintf(f, "peer zone %q (VSAN %d)\n", pz.PeerName, pz.VSAN)
-		fmt.Fprintf(f, "  principal: %s\n", pz.Target)
-		fmt.Fprintf(f, "  members:   %s\n", strings.Join(pz.Members, ", "))
+	for _, pz := range report.Zones {
+		fmt.Fprintf(f, "%s %q (VSAN %d)\n", zoneWord, pz.NewName, pz.VSAN)
+		fmt.Fprintf(f, "  %-17s %s\n", labelWord+":", pz.Target)
+		fmt.Fprintf(f, "  %-17s %s\n", "members:", strings.Join(pz.Members, ", "))
 		fmt.Fprintf(f, "  collapsed %d flat zone(s): %s\n\n", len(pz.SourceZones), strings.Join(pz.SourceZones, ", "))
 	}
 	fmt.Fprintf(f, "## Zones left flat (%d)\n\n", len(report.Skipped))
