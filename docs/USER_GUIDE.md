@@ -117,8 +117,9 @@ The script contains:
 | `--script` | | (none) | Also write executable shell script (mds2brocade only) |
 | `--fos-version` | | `8.1+` | FOS naming rules: `8.1+` (default) or `pre-8.1` (legacy switches) |
 | `--peer-consolidate` | | false | Consolidate flat single-initiator/single-target zones into per-target Brocade peer zones (mds2brocade only; see --consolidate-report) |
-| `--consolidate-report` | | (none) | Write the peer-zone consolidation report to a file |
-| `--consolidate-strict` | | false | With `--peer-consolidate`: require an exact `<host>_<target>` zone name (default: also match when the target alias is a trailing component of the zone name) |
+| `--smart-consolidate` | | false | Consolidate flat single-initiator/single-target zones into per-target MDS smart zones (brocade2mds only; see --consolidate-report) |
+| `--consolidate-report` | | (none) | With `--peer-consolidate` or `--smart-consolidate`, write the consolidation report to a file |
+| `--consolidate-strict` | | false | With `--peer-consolidate` / `--smart-consolidate`: require an exact `<host>_<target>` zone name (default: also match when the target alias is a trailing component of the zone name) |
 
 ### `--fos-version` detail
 
@@ -228,6 +229,37 @@ left flat and why.
 Peer-zone output requires **Fabric OS ≥ 7.4** on the target switch (peer zoning
 was introduced in FOS 7.4). `--peer-consolidate` is off by default and is only
 available for `mds2brocade`.
+
+### Consolidating Brocade flat zones into MDS smart zones
+
+`brocade2mds --smart-consolidate` is the mirror of `mds2brocade --peer-consolidate`. It collapses flat single-initiator/single-target Brocade zones into per-target MDS smart zones (one zone per storage port, target as principal, hosts as init members) and adds `zone smart-zoning enable vsan N` automatically.
+
+**The heuristic is identical to `--peer-consolidate`:**
+- By default, the target alias must be a trailing component of the zone name (e.g. `ESX04_HBA0_TGT1` → target is `TGT1`).
+- With `--consolidate-strict`, the zone name must be exactly `<init>_<target>` or `<target>_<init>`.
+- A frequency veto then requires the inferred target to appear in ≥ 2 candidate zones and ≥ as many as the inferred initiator. Anything ambiguous stays flat.
+
+**Example:**
+
+```bash
+san-conv brocade2mds --smart-consolidate \
+    --consolidate-report consolidation-review.md \
+    fabric-a.cfgshow > fabric-a.nxos.txt
+```
+
+Review `consolidation-review.md` carefully before applying. A misclassified target causes a host to lose storage access.
+
+**Output shape:** For two flat zones `ESX1_TGT1` and `ESX2_TGT1` sharing target `TGT1`, the merged output is:
+
+```
+zone smart-zoning enable vsan 1
+zone name TGT1_smartzone vsan 1
+  member device-alias TGT1 target
+  member device-alias ESX1 init
+  member device-alias ESX2 init
+```
+
+Combined with the existing peer-zone round-trip (already on by default for any input with `--peerzone` blocks), `--smart-consolidate` migrates a fabric to MDS smart zoning in a single conversion.
 
 ### Config hygiene warnings
 
