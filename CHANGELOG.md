@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-05-13
+
+### Added
+
+- `brocade2mds` now accepts `--peer-consolidate` as a hidden, non-breaking alias of `--smart-consolidate`, for symmetry with `mds2brocade --peer-consolidate`. `--smart-consolidate` remains the canonical name shown in `--help` (accurate to the NX-OS *smart zoning* construct emitted); either spelling triggers the same code path. Documented in USER_GUIDE.md.
+
 ## [1.1.0] - 2026-05-13
 
 ### Added
