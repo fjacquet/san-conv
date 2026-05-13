@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-05-13
+
+### Added
+
+#### Real-world MDS config robustness (Group A — ADR/spec 2026-05-11)
+- `internal/preprocess` package: strips ANSI/VT100 escape sequences, normalizes `\r` to `\n`, and drops standalone `--More--` pager prompts before parsing. Both parsers now read input via `preprocess.Clean`, so terminal captures with paged output no longer silently lose zone members glued to pager prompts.
+- `--vsan N` flag (`mds2brocade` only): scope conversion to a single VSAN. Zones, zonesets, and fcaliases outside that VSAN are pruned after parsing; device-aliases are fabric-wide and always kept. `0` (default) keeps the existing merge-all behavior.
+- Multi-VSAN diagnostics: parser now emits a per-VSAN breakdown (zone/zoneset counts) and warns when the same zone name appears in two VSANs (Brocade has a flat zone namespace).
+
+#### Smart-zoning ↔ peer-zoning bridge (Groups B1+B3 — ADR-0008, ADR-0010)
+- `ir.ZoneMember.Role` (`""` | `"init"` | `"target"` | `"both"`). The MDS parser captures roles on member lines instead of stripping them with a warning.
+- Brocade emitter renders any role-bearing zone as `zonecreate --peerzone "name" -principal "<target+both+roleless>" -members "<init>"`. A zone with no principal members falls back to a plain `zonecreate` with an informational warning.
+- Brocade parser now parses `zonecreate --peerzone` (CLI) and the cfgshow `00:02:00:00:NN:NN:00:00` property marker into role-bearing `ir.Zone`s (`-principal` → `target`, non-principal → `init`; marker decode is best-effort with a plain-zone + warning fallback on bad counts).
+- MDS emitter renders any role-bearing zone as `member <type> <val> <role>` plus a per-VSAN `zone smart-zoning enable vsan N` directive. Plain zones and zone-configs without any peer zones emit byte-identical to before. Round-trips `mds2brocade` → `brocade2mds` cleanly; the only loss is `both` → `target` (a Brocade peer zone has no "reaches everyone" slot).
+
+#### Peer-zone / smart-zone consolidation (Groups B2+B4 — ADR-0009, ADR-0011)
+- `internal/consolidator` package: `Consolidate(cfg, strict bool, nameSuffix string) Report` infers `(init, target)` for flat 2-member alias zones using zone-name decomposition (default = trailing-component classifier; `--consolidate-strict` reverts to exact `<host>_<target>`) plus a cross-zone frequency veto, then groups by target and rewrites the IR into per-target role-bearing zones named `<target>_<suffix>`. Direction-agnostic IR; emitter renders accordingly.
+- `mds2brocade --peer-consolidate`: collapses flat single-initiator/single-target zones into per-target Brocade peer zones (`<target>_peerzone`).
+- `brocade2mds --smart-consolidate`: mirror of the above — collapses flat Brocade zones into per-target MDS smart zones (`<target>_smartzone`).
+- Shared flags: `--consolidate-report <file>` writes a per-merged-zone / per-skipped-zone verification report with direction-specific vocabulary; `--consolidate-strict` opts out of the trailing-component classifier.
+- `internal/hygiene` package: `Check(cfg)` runs unconditionally and appends warnings for dangling alias references, empty/single-member zones, aliases defined but unused, and zones not in any zoneset. Static checks only — cannot see physical connectivity.
+
+#### Documentation
+- ADRs 0008–0011 (peer-zoning emitter, peer-zone consolidation, peer-zone round-trip, brocade-flat-to-mds-smart).
+- USER_GUIDE: new sections on peer-zone output and FOS ≥ 7.4 requirement, `--vsan` scoping, peer-zone consolidation, brocade-to-smart consolidation, config hygiene warnings.
+
+### Changed
+
+- ADR-0002's "smart zoning has no FOS equivalent" claim is amended: peer-zone emission is the FOS equivalent.
+- Consolidator API: `Consolidate(cfg, strict, nameSuffix)` is the bidirectional signature; `PeerZoneSummary` → `ConsolidatedZoneSummary` (`PeerName` → `NewName`); `Report.PeerZones` → `Report.Zones`. Internal-only — no external consumers.
+- Dev toolchain bumped: goreleaser `v2.14.3` → `v2.15.4`, golangci-lint `v2.11.4` → `v2.12.2`. Runtime dependency graph unchanged.
+
+### Fixed
+
+- MDS parser multi-VSAN breakdown counts are derived from the deduplicated IR maps, so a config that appears twice in the input (e.g. `show zoneset active` + `show running-config`) is counted once instead of doubled.
+- When `--vsan N` is given, the parser's "multi-VSAN input: … pass `--vsan N` to scope to one" warning tail is rewritten to "… converted only VSAN N (--vsan)".
+- `.golangci.yml`: dropped invalid `issues.exclude-dirs` key (removed from v2 schema; this had been failing the CI Lint job).
+- errcheck excludes `fmt.Fprint*`, `fmt.Sscanf`, and `(*os.File).Close` — intentional and idiomatic for an offline CLI tool.
+
 ## [1.0.1] - 2026-03-29
 
 ### Changed
