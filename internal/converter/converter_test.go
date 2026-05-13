@@ -2,6 +2,7 @@ package converter
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -418,4 +419,71 @@ func TestRun_StderrSummaryFormat(t *testing.T) {
 	)
 	require.Regexp(t, summaryPattern, stderr.String(),
 		`stderr must contain a line matching "Summary: N aliases, N zones, N configs converted; N warnings"`)
+}
+
+func TestRun_Brocade2MDS_SmartConsolidate(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	err := Run(Options{
+		InputFile:          "../../testdata/brocade/cli_flat_zones.cfg",
+		Direction:          "brocade2mds",
+		BrocadeConsolidate: true,
+	}, &stdout, &stderr)
+	require.NoError(t, err)
+
+	out := stdout.String()
+	// Smart-zoning must be enabled on the VSAN that holds the merged zones.
+	require.Contains(t, out, "zone smart-zoning enable vsan 1",
+		"missing smart-zoning enable directive")
+
+	// TGT1 had 3 initiators (ESX1/ESX2/ESX3) → one merged zone named TGT1_smartzone.
+	require.Contains(t, out, "zone name TGT1_smartzone vsan 1")
+	require.Contains(t, out, "  member device-alias TGT1 target")
+	require.Contains(t, out, "  member device-alias ESX1 init")
+	require.Contains(t, out, "  member device-alias ESX2 init")
+	require.Contains(t, out, "  member device-alias ESX3 init")
+
+	// TGT2 had 2 initiators (ESX1/ESX2) → one merged zone named TGT2_smartzone.
+	require.Contains(t, out, "zone name TGT2_smartzone vsan 1")
+	require.Contains(t, out, "  member device-alias TGT2 target")
+
+	// The SRDF replication zone (DR_REPL_A / DR_REPL_B both freq=1) stays flat.
+	require.Contains(t, out, "zone name SRDF_DR_REPL_A_DR_REPL_B vsan 1",
+		"single-occurrence zone should be left flat")
+	require.NotContains(t, out, "DR_REPL_A_smartzone")
+	require.NotContains(t, out, "DR_REPL_B_smartzone")
+
+	// The 3-member zone is not consolidatable; it stays flat (and roleless).
+	require.Contains(t, out, "zone name ThreeMemberZone vsan 1")
+
+	// Original flat zones that WERE consolidated must be gone.
+	require.NotContains(t, out, "zone name ESX1_TGT1 vsan")
+	require.NotContains(t, out, "zone name ESX2_TGT2 vsan")
+
+	// The zoneset must reference the merged zones, not the originals.
+	require.Contains(t, out, "  member TGT1_smartzone")
+	require.Contains(t, out, "  member TGT2_smartzone")
+	require.NotContains(t, out, "  member ESX1_TGT1")
+
+	// Summary line on stderr.
+	require.Contains(t, stderr.String(),
+		"Consolidated 5 flat zones into 2 smart zones; ")
+}
+
+func TestRun_Brocade2MDS_NoSmartConsolidate_IsUnchanged(t *testing.T) {
+	var stdoutWith, stdoutWithout bytes.Buffer
+	require.NoError(t, Run(Options{
+		InputFile: "../../testdata/brocade/cli_flat_zones.cfg",
+		Direction: "brocade2mds",
+	}, &stdoutWithout, io.Discard))
+
+	require.NoError(t, Run(Options{
+		InputFile:          "../../testdata/brocade/cli_flat_zones.cfg",
+		Direction:          "brocade2mds",
+		BrocadeConsolidate: false, // explicit
+	}, &stdoutWith, io.Discard))
+
+	require.Equal(t, stdoutWithout.String(), stdoutWith.String(),
+		"--smart-consolidate=false must produce byte-identical output")
+	// No smart-zoning enable when no zones are roled.
+	require.NotContains(t, stdoutWithout.String(), "smart-zoning enable")
 }
