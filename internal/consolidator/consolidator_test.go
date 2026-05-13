@@ -41,7 +41,7 @@ func TestConsolidate_HappyPath(t *testing.T) {
 		"ESX3_TGT1@vsan10": flatZone("ESX3_TGT1", 10, "ESX3", "TGT1"),
 	})
 
-	report := Consolidate(cfg, false)
+	report := Consolidate(cfg, false, "peerzone")
 
 	// Source zones must be removed.
 	require.NotContains(t, cfg.Zones, "ESX1_TGT1@vsan10")
@@ -67,13 +67,13 @@ func TestConsolidate_HappyPath(t *testing.T) {
 	require.ElementsMatch(t, []string{"ESX1", "ESX2", "ESX3"}, initNames)
 
 	// Report.
-	require.Len(t, report.PeerZones, 1)
-	pzs := report.PeerZones[0]
-	require.Equal(t, "TGT1", pzs.Target)
-	require.Equal(t, "TGT1_peerzone", pzs.PeerName)
-	require.Equal(t, 10, pzs.VSAN)
-	require.ElementsMatch(t, []string{"ESX1", "ESX2", "ESX3"}, pzs.Members)
-	require.Equal(t, []string{"ESX1_TGT1", "ESX2_TGT1", "ESX3_TGT1"}, pzs.SourceZones) // sorted
+	require.Len(t, report.Zones, 1)
+	czs := report.Zones[0]
+	require.Equal(t, "TGT1", czs.Target)
+	require.Equal(t, "TGT1_peerzone", czs.NewName)
+	require.Equal(t, 10, czs.VSAN)
+	require.ElementsMatch(t, []string{"ESX1", "ESX2", "ESX3"}, czs.Members)
+	require.Equal(t, []string{"ESX1_TGT1", "ESX2_TGT1", "ESX3_TGT1"}, czs.SourceZones) // sorted
 	require.Empty(t, report.Skipped)
 }
 
@@ -102,7 +102,7 @@ func TestConsolidate_ZoneConfigsRewrite(t *testing.T) {
 		ZoneNames: []string{"ESX1_TGT1", "ESX2_TGT1", "SomeOtherZone"},
 	}
 
-	Consolidate(cfg, false)
+	Consolidate(cfg, false, "peerzone")
 
 	zc := cfg.ZoneConfigs["cfg1@vsan10"]
 	require.NotNil(t, zc)
@@ -121,14 +121,14 @@ func TestConsolidate_SingleHost_LeftFlat(t *testing.T) {
 		"ESX1_TGT9@vsan10": flatZone("ESX1_TGT9", 10, "ESX1", "TGT9"),
 	})
 
-	report := Consolidate(cfg, false)
+	report := Consolidate(cfg, false, "peerzone")
 
 	// Source zone must remain.
 	require.Contains(t, cfg.Zones, "ESX1_TGT9@vsan10")
 	// No peer zone created.
 	require.NotContains(t, cfg.Zones, "TGT9_peerzone@vsan10")
-	// No PeerZones in report.
-	require.Empty(t, report.PeerZones)
+	// No Zones in report.
+	require.Empty(t, report.Zones)
 	// Skipped with a reason mentioning infrequent target or only one host.
 	require.Len(t, report.Skipped, 1)
 	require.Equal(t, "ESX1_TGT9", report.Skipped[0].Name)
@@ -148,10 +148,10 @@ func TestConsolidate_NameDoesNotDecompose(t *testing.T) {
 		"RA1_RA2_SRDF@vsan10": flatZone("RA1_RA2_SRDF", 10, "RA1", "RA2"),
 	})
 
-	report := Consolidate(cfg, false)
+	report := Consolidate(cfg, false, "peerzone")
 
 	require.Contains(t, cfg.Zones, "RA1_RA2_SRDF@vsan10")
-	require.Empty(t, report.PeerZones)
+	require.Empty(t, report.Zones)
 	require.Len(t, report.Skipped, 1)
 	require.Equal(t, "RA1_RA2_SRDF", report.Skipped[0].Name)
 	require.Contains(t, report.Skipped[0].Reason, "trailing component")
@@ -177,7 +177,7 @@ func TestConsolidate_FrequencyVeto_TargetTooInfrequent(t *testing.T) {
 	}
 	cfg := buildCfg(zones)
 
-	report := Consolidate(cfg, false)
+	report := Consolidate(cfg, false, "peerzone")
 
 	// BIG_small must be left flat (frequency veto on "small").
 	require.Contains(t, cfg.Zones, "BIG_small@vsan10")
@@ -239,7 +239,7 @@ func TestConsolidate_NonCandidates_Untouched(t *testing.T) {
 		},
 	})
 
-	report := Consolidate(cfg, false)
+	report := Consolidate(cfg, false, "peerzone")
 
 	// All four zones still present.
 	require.Contains(t, cfg.Zones, "3member@vsan10")
@@ -248,7 +248,7 @@ func TestConsolidate_NonCandidates_Untouched(t *testing.T) {
 	require.Contains(t, cfg.Zones, "smartzone@vsan10")
 
 	// None in the report at all.
-	require.Empty(t, report.PeerZones)
+	require.Empty(t, report.Zones)
 	require.Empty(t, report.Skipped)
 }
 
@@ -267,10 +267,10 @@ func TestConsolidate_Determinism(t *testing.T) {
 		})
 	}
 
-	r1 := Consolidate(buildInput(), false)
-	r2 := Consolidate(buildInput(), false)
+	r1 := Consolidate(buildInput(), false, "peerzone")
+	r2 := Consolidate(buildInput(), false, "peerzone")
 
-	require.Equal(t, r1.PeerZones, r2.PeerZones)
+	require.Equal(t, r1.Zones, r2.Zones)
 	require.Equal(t, r1.Skipped, r2.Skipped)
 }
 
@@ -279,8 +279,8 @@ func TestConsolidate_Determinism(t *testing.T) {
 func TestConsolidate_EmptyInput(t *testing.T) {
 	t.Parallel()
 	cfg := buildCfg(map[string]*ir.Zone{})
-	report := Consolidate(cfg, false)
-	require.Empty(t, report.PeerZones)
+	report := Consolidate(cfg, false, "peerzone")
+	require.Empty(t, report.Zones)
 	require.Empty(t, report.Skipped)
 }
 
@@ -302,27 +302,27 @@ func TestConsolidate_RelaxedTrailingComponent(t *testing.T) {
 	t.Run("relaxed default consolidates by trailing-component target", func(t *testing.T) {
 		t.Parallel()
 		cfg := mk()
-		report := Consolidate(cfg, false)
+		report := Consolidate(cfg, false, "peerzone")
 		require.NotContains(t, cfg.Zones, "ESX9_HBA0_TGT1@vsan10")
 		require.NotContains(t, cfg.Zones, "ESX10_HBA0_TGT1@vsan10")
 		pz, ok := cfg.Zones["TGT1_peerzone@vsan10"]
 		require.True(t, ok, "TGT1_peerzone@vsan10 must exist")
 		require.Equal(t, "TGT1", pz.Members[0].Value)
 		require.Equal(t, "target", pz.Members[0].Role)
-		require.Len(t, report.PeerZones, 1)
-		require.Equal(t, "TGT1", report.PeerZones[0].Target)
-		require.ElementsMatch(t, []string{"ESX9", "ESX10"}, report.PeerZones[0].Members)
+		require.Len(t, report.Zones, 1)
+		require.Equal(t, "TGT1", report.Zones[0].Target)
+		require.ElementsMatch(t, []string{"ESX9", "ESX10"}, report.Zones[0].Members)
 		require.Empty(t, report.Skipped)
 	})
 
 	t.Run("strict leaves <host>_HBA0_<target> flat", func(t *testing.T) {
 		t.Parallel()
 		cfg := mk()
-		report := Consolidate(cfg, true)
+		report := Consolidate(cfg, true, "peerzone")
 		require.Contains(t, cfg.Zones, "ESX9_HBA0_TGT1@vsan10")
 		require.Contains(t, cfg.Zones, "ESX10_HBA0_TGT1@vsan10")
 		require.NotContains(t, cfg.Zones, "TGT1_peerzone@vsan10")
-		require.Empty(t, report.PeerZones)
+		require.Empty(t, report.Zones)
 		require.Len(t, report.Skipped, 2)
 		for _, s := range report.Skipped {
 			require.Contains(t, s.Reason, "--consolidate-strict")
@@ -336,11 +336,34 @@ func TestConsolidate_BothMembersTrailing_LeftFlat(t *testing.T) {
 	cfg := buildCfg(map[string]*ir.Zone{
 		"Y_X@vsan10": flatZone("Y_X", 10, "X", "Y_X"),
 	})
-	report := Consolidate(cfg, false)
+	report := Consolidate(cfg, false, "peerzone")
 	require.Contains(t, cfg.Zones, "Y_X@vsan10")
-	require.Empty(t, report.PeerZones)
+	require.Empty(t, report.Zones)
 	require.Len(t, report.Skipped, 1)
 	require.Contains(t, report.Skipped[0].Reason, "both members are a trailing component")
+}
+
+func TestConsolidate_HonorsNameSuffix(t *testing.T) {
+	cfg := &ir.ZoningConfig{
+		Aliases: map[string]*ir.Alias{
+			"TGT1": {Name: "TGT1", PWWN: "50:00:00:00:00:00:00:01"},
+			"ESX1": {Name: "ESX1", PWWN: "10:00:00:00:00:00:00:01"},
+			"ESX2": {Name: "ESX2", PWWN: "10:00:00:00:00:00:00:02"},
+		},
+		Zones: map[string]*ir.Zone{
+			"ESX1_TGT1@vsan0": {Name: "ESX1_TGT1", VSAN: 0, Members: []*ir.ZoneMember{
+				{Type: "alias", Value: "ESX1"}, {Type: "alias", Value: "TGT1"},
+			}},
+			"ESX2_TGT1@vsan0": {Name: "ESX2_TGT1", VSAN: 0, Members: []*ir.ZoneMember{
+				{Type: "alias", Value: "ESX2"}, {Type: "alias", Value: "TGT1"},
+			}},
+		},
+	}
+	report := Consolidate(cfg, false, "smartzone")
+	require.Len(t, report.Zones, 1, "exactly one consolidated zone")
+	require.Equal(t, "TGT1_smartzone", report.Zones[0].NewName)
+	_, ok := cfg.Zones["TGT1_smartzone@vsan0"]
+	require.True(t, ok, "consolidated zone present in cfg.Zones under suffix-based key")
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────

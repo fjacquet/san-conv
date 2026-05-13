@@ -1,8 +1,9 @@
 // Package consolidator collapses flat single-initiator/single-target zones into
-// per-target Brocade peer zones. It infers which member is the target by the
-// zone name: by default the target is whichever member alias is a trailing
-// component of the zone name (e.g. "..._GVAMAX01_FA1D04"), the other member
-// being the initiator; in strict mode the zone name must be exactly
+// per-target merged role-bearing zones (rendered by the Brocade emitter as peer
+// zones and by the MDS emitter as smart zones). It infers which member is the
+// target by the zone name: by default the target is whichever member alias is a
+// trailing component of the zone name (e.g. "..._GVAMAX01_FA1D04"), the other
+// member being the initiator; in strict mode the zone name must be exactly
 // <init>_<target> or <target>_<init>. A cross-zone member-frequency veto then
 // rejects classifications where the inferred target appears in fewer zones than
 // the inferred initiator, or in too few zones to be worth consolidating. Zones
@@ -18,13 +19,16 @@ import (
 	"github.com/fjacquet/san-conv/internal/ir"
 )
 
-// PeerZoneSummary describes one peer zone created by Consolidate.
-type PeerZoneSummary struct {
-	Target      string // the storage-side alias name (the -principal member)
-	PeerName    string // the new peer zone's name (Target + "_peerzone")
+// ConsolidatedZoneSummary describes one merged role-bearing zone created by Consolidate.
+// In the mds2brocade direction the Brocade emitter renders it as a `zonecreate --peerzone …` block;
+// in the brocade2mds direction the MDS emitter renders it as a smart zone (members with init/target
+// roles plus a `zone smart-zoning enable vsan N` directive).
+type ConsolidatedZoneSummary struct {
+	Target      string // the storage-side alias name (the -principal / target-role member)
+	NewName     string // the new merged zone's name (Target + "_" + suffix)
 	VSAN        int
 	Members     []string // initiator alias names, in first-seen order
-	SourceZones []string // names of the flat zones that were collapsed into this peer zone, sorted
+	SourceZones []string // names of the flat zones that were collapsed into this zone, sorted
 }
 
 // SkippedZone records a 2-member zone Consolidate considered but left flat, and why.
@@ -35,8 +39,8 @@ type SkippedZone struct {
 
 // Report is the result of a Consolidate call: what was created and what was skipped.
 type Report struct {
-	PeerZones []PeerZoneSummary // sorted by Target
-	Skipped   []SkippedZone     // sorted by Name
+	Zones   []ConsolidatedZoneSummary // sorted by Target
+	Skipped []SkippedZone             // sorted by Name
 }
 
 // consolidatable holds the classification of a single candidate zone.
@@ -48,14 +52,20 @@ type consolidatable struct {
 }
 
 // Consolidate collapses flat single-initiator/single-target zones in cfg into
-// per-target Brocade peer zones, mutating cfg in place, and returns a Report.
+// per-target merged role-bearing zones, mutating cfg in place, and returns a
+// Report. The merged zone is named gk.target + "_" + nameSuffix (e.g.
+// "TGT1_peerzone" for the Brocade direction, "TGT1_smartzone" for the MDS
+// direction); the IR contents are direction-agnostic (target role on the
+// principal member, init role on each initiator), and the respective emitters
+// (Brocade peer zone, MDS smart zone) render them accordingly.
+//
 // When strict is false (the default), the target is identified as the member
 // alias that is a trailing component of the zone name; when strict is true, the
 // zone name must be exactly <init>_<target> or <target>_<init>. Zones it cannot
 // confidently classify, and zones that aren't 2-member alias-membered roleless
 // zones, are left untouched (the 2-member ones are recorded in Report.Skipped
 // with a reason).
-func Consolidate(cfg *ir.ZoningConfig, strict bool) Report {
+func Consolidate(cfg *ir.ZoningConfig, strict bool, nameSuffix string) Report {
 	// ── Step 1: collect candidate zone keys in deterministic order ────────────
 	allKeys := make([]string, 0, len(cfg.Zones))
 	for k := range cfg.Zones {
@@ -184,10 +194,10 @@ func Consolidate(cfg *ir.ZoningConfig, strict bool) Report {
 	}
 
 	// ── Step 5: rewrite the IR ─────────────────────────────────────────────────
-	// consolidatedNameToPeer maps bare source zone name → peer zone name.
-	consolidatedNameToPeer := make(map[string]string)
+	// consolidatedNameToNew maps bare source zone name → merged zone name.
+	consolidatedNameToNew := make(map[string]string)
 
-	var peerZones []PeerZoneSummary
+	var zones []ConsolidatedZoneSummary
 
 	for _, gk := range groupOrder {
 		g := groups[gk]
@@ -199,7 +209,7 @@ func Consolidate(cfg *ir.ZoningConfig, strict bool) Report {
 				skipped = append(skipped, SkippedZone{
 					Name: srcName,
 					Reason: fmt.Sprintf(
-						"only one host zoned to target %q — a peer zone would add no value, left flat",
+						"only one host zoned to target %q — a merged zone would add no value, left flat",
 						gk.target,
 					),
 				})
@@ -207,18 +217,18 @@ func Consolidate(cfg *ir.ZoningConfig, strict bool) Report {
 			continue
 		}
 
-		peerName := gk.target + "_peerzone"
+		newName := gk.target + "_" + nameSuffix
 
-		// Build the peer zone IR.
-		pz := &ir.Zone{
-			Name: peerName,
+		// Build the merged role-bearing zone.
+		mz := &ir.Zone{
+			Name: newName,
 			VSAN: gk.vsan,
 			Members: []*ir.ZoneMember{
 				{Type: "alias", Value: gk.target, Role: "target"},
 			},
 		}
 		for _, init := range g.inits {
-			pz.Members = append(pz.Members, &ir.ZoneMember{
+			mz.Members = append(mz.Members, &ir.ZoneMember{
 				Type:  "alias",
 				Value: init,
 				Role:  "init",
@@ -230,32 +240,32 @@ func Consolidate(cfg *ir.ZoningConfig, strict bool) Report {
 			delete(cfg.Zones, k)
 		}
 
-		// Add peer zone to cfg.
-		peerKey := fmt.Sprintf("%s@vsan%d", peerName, gk.vsan)
-		cfg.Zones[peerKey] = pz
+		// Add merged zone to cfg.
+		newKey := fmt.Sprintf("%s@vsan%d", newName, gk.vsan)
+		cfg.Zones[newKey] = mz
 
 		// Record the mapping for ZoneConfigs rewrite.
 		for _, srcName := range g.sourceZones {
-			consolidatedNameToPeer[srcName] = peerName
+			consolidatedNameToNew[srcName] = newName
 		}
 
-		peerZones = append(peerZones, PeerZoneSummary{
+		zones = append(zones, ConsolidatedZoneSummary{
 			Target:      gk.target,
-			PeerName:    peerName,
+			NewName:     newName,
 			VSAN:        gk.vsan,
 			Members:     g.inits,
 			SourceZones: g.sourceZones,
 		})
 	}
 
-	// Rewrite ZoneConfigs: replace consolidated zone names with peer names, dedup.
+	// Rewrite ZoneConfigs: replace consolidated zone names with merged names, dedup.
 	for _, zc := range cfg.ZoneConfigs {
 		var newNames []string
 		seen := make(map[string]bool)
 		for _, name := range zc.ZoneNames {
 			mapped := name
-			if peer, ok := consolidatedNameToPeer[name]; ok {
-				mapped = peer
+			if merged, ok := consolidatedNameToNew[name]; ok {
+				mapped = merged
 			}
 			if !seen[mapped] {
 				seen[mapped] = true
@@ -266,16 +276,16 @@ func Consolidate(cfg *ir.ZoningConfig, strict bool) Report {
 	}
 
 	// ── Step 6: build sorted report ──────────────────────────────────────────
-	sort.Slice(peerZones, func(i, j int) bool {
-		return peerZones[i].Target < peerZones[j].Target
+	sort.Slice(zones, func(i, j int) bool {
+		return zones[i].Target < zones[j].Target
 	})
 	sort.Slice(skipped, func(i, j int) bool {
 		return skipped[i].Name < skipped[j].Name
 	})
 
 	return Report{
-		PeerZones: peerZones,
-		Skipped:   skipped,
+		Zones:   zones,
+		Skipped: skipped,
 	}
 }
 
