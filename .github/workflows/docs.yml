@@ -36,17 +36,20 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-python@v6
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
           python-version: "3.x"
           cache: pip
           cache-dependency-path: requirements-docs.txt
-      - run: pip install -r requirements-docs.txt
-      - run: mkdocs build --strict --site-dir site
-      - uses: actions/upload-pages-artifact@v5
+      - name: Install MkDocs
+        run: pip install -r requirements-docs.txt
+      - name: Build site (strict)
+        run: mkdocs build --strict --site-dir site
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
@@ -59,5 +62,6 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - id: deployment
+      - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v5
