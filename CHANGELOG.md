@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-05-27
+
+### Added
+
+- Documentation site published with MkDocs Material at <https://fjacquet.github.io/san-conv/>, built from the existing `docs/` tree (User Guide, PRD, Security, ADRs, Changelog) and deployed via GitHub Actions (`.github/workflows/docs.yml`) on every push to `main`. README gains Docs, Go-version, and Documentation badges.
+
+### Note
+
+- Documentation/CI only — the `san-conv` binary is byte-for-byte equivalent to v1.2.1 (no source changes since that release).
+
 ## [1.2.1] - 2026-05-27
 
 ### Changed
