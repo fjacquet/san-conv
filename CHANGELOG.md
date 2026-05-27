@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-05-27
+
+### Added
+
+- Release artifacts now ship a Software Bill of Materials (SBOM). GoReleaser generates an SPDX-JSON SBOM (via [syft](https://github.com/anchore/syft)) for every release archive and for the source tarball, published alongside the binaries and `checksums.txt`. This supports downstream vulnerability scanning and supply-chain verification. The release workflow installs syft via `anchore/sbom-action/download-syft`.
+
 ## [1.1.1] - 2026-05-13
 
 ### Added
