@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-05-27
+
+### Changed
+
+- Bumped the build toolchain (`goreleaser` v2.15.4 → v2.16.0), which pulls patched versions of its transitive dependencies — `go-git` v5.19.1, `go-billy` v5.9.0, `modelcontextprotocol/registry` v1.7.9, `slack-go` v0.23.1, `in-toto-golang` v0.11.0 — clearing 12 Dependabot advisories. These are **build-time-only** dependencies: the shipped `san-conv` binary contains only `cobra`/`pflag` and was never affected (verified with `go version -m` and `govulncheck`).
+
 ## [1.2.0] - 2026-05-27
 
 ### Added
