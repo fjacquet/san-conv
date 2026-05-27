@@ -12,3 +12,7 @@ dist/
 
 # Customer config captures — contain real WWNs and hostnames, never commit
 customers/
+
+# Local tooling state — not part of the project
+.claude/
+.rtk/
