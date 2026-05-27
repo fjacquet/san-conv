@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-05-27
+
+### Added
+
+- `san-conv --version` now reports the build version and commit (e.g. `san-conv version v1.3.0 (commit abc1234)`), and a `--version` flag appears in `-h` output. The `Makefile` ldflags (`-X main.version` / `-X main.commit`) were previously no-ops because no matching package variables existed; `main.go` now declares them and `cmd.Execute` sets cobra's `rootCmd.Version`.
+
 ## [1.2.2] - 2026-05-27
 
 ### Added
