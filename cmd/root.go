@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/fjacquet/san-conv/internal/converter"
@@ -41,7 +42,9 @@ Reverse direction: brocade2mds (FOS cfgshow/script to NX-OS CLI commands)`,
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
+// version and commit are injected at build time and shown via --version.
+func Execute(version, commit string) {
+	rootCmd.Version = fmt.Sprintf("%s (commit %s)", version, commit)
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
