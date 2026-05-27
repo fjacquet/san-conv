@@ -2,9 +2,12 @@
 
 [![CI](https://github.com/fjacquet/san-conv/actions/workflows/ci.yml/badge.svg)](https://github.com/fjacquet/san-conv/actions/workflows/ci.yml)
 [![Release](https://github.com/fjacquet/san-conv/actions/workflows/release.yml/badge.svg)](https://github.com/fjacquet/san-conv/actions/workflows/release.yml)
+[![Docs](https://github.com/fjacquet/san-conv/actions/workflows/docs.yml/badge.svg)](https://github.com/fjacquet/san-conv/actions/workflows/docs.yml)
+[![Latest Release](https://img.shields.io/github/v/release/fjacquet/san-conv)](https://github.com/fjacquet/san-conv/releases/latest)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/fjacquet/san-conv)](https://github.com/fjacquet/san-conv/blob/main/go.mod)
 [![Go Report Card](https://goreportcard.com/badge/github.com/fjacquet/san-conv)](https://goreportcard.com/report/github.com/fjacquet/san-conv)
 [![Go Reference](https://pkg.go.dev/badge/github.com/fjacquet/san-conv.svg)](https://pkg.go.dev/github.com/fjacquet/san-conv)
-[![Latest Release](https://img.shields.io/github/v/release/fjacquet/san-conv)](https://github.com/fjacquet/san-conv/releases/latest)
+[![Documentation](https://img.shields.io/badge/docs-online-blue)](https://fjacquet.github.io/san-conv/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Convert SAN fabric zoning configurations between Cisco MDS (NX-OS) and Brocade FOS formats.
