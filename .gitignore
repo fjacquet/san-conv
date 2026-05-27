@@ -16,3 +16,7 @@ customers/
 # Local tooling state — not part of the project
 .claude/
 .rtk/
+
+# MkDocs build output
+site/
+.venv-docs/

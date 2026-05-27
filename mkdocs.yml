@@ -1,0 +1,75 @@
+site_name: san-conv
+site_description: Convert SAN zoning configs between Cisco MDS (NX-OS) and Brocade FOS
+site_url: https://fjacquet.github.io/san-conv/
+repo_url: https://github.com/fjacquet/san-conv
+repo_name: fjacquet/san-conv
+edit_uri: edit/main/docs/
+docs_dir: docs
+
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.instant
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+    - content.action.view
+    - toc.follow
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+exclude_docs: |
+  superpowers/
+
+nav:
+  - Home: index.md
+  - User Guide: USER_GUIDE.md
+  - Reference:
+      - PRD: PRD.md
+      - Security: security.md
+  - Design Decisions:
+      - adr/0001-go-single-binary.md
+      - adr/0002-warn-and-continue.md
+      - adr/0003-bidirectional-mds-primary.md
+      - adr/0004-ir-compiler-pipeline.md
+      - adr/0005-two-pass-mds-parser.md
+      - adr/0006-fos-naming-default.md
+      - adr/0007-cobra-cli-framework.md
+      - adr/0008-mds-smart-zoning-to-peer-zoning.md
+      - adr/0009-peer-zone-consolidation.md
+      - adr/0010-peerzone-roundtrip.md
+      - adr/0011-brocade-flat-to-mds-smart.md
+  - Changelog: changelog.md
