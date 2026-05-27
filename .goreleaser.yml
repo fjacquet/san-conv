@@ -39,6 +39,20 @@ archives:
           - zip
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
+# Ship a reproducible source tarball alongside the binaries (gives the
+# source SBOM below something to catalog).
+source:
+  enabled: true
+
+# SBOMs of every release archive and the source tarball, via syft.
+# Defaults to SPDX-JSON ($artifact.spdx.json), enriched. Requires syft on PATH.
+# https://goreleaser.com/customization/sbom
+sboms:
+  - id: archive
+    artifacts: archive
+  - id: source
+    artifacts: source
+
 checksum:
   name_template: "checksums.txt"
 
