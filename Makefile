@@ -1,93 +1,83 @@
-BINARY    := san-conv
-MODULE    := github.com/fjacquet/san-conv
-BUILD_DIR := dist
+# Canonical Go Makefile — fjacquet/ci standard interface (do not rename targets)
+.DEFAULT_GOAL := all
+DIST  ?= dist
+COVER ?= coverage.out
+GOLANGCI_VERSION ?= v2.12.2
+GORELEASER_VERSION ?= v2.16.0
 
-VERSION   := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
-COMMIT    := $(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
-LDFLAGS   := -s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT)
+BINARY := san-conv
+MODULE := github.com/fjacquet/san-conv
+VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+COMMIT  := $(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
+LDFLAGS := -s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT)
 
-GO        := go
 # Lint only project packages (./... hits indirect dep module cache in golangci-lint v2)
-PKGS      := ./cmd/... ./internal/...
-GOLINT    := golangci-lint
-GORELEASER:= goreleaser
+PKGS ?= ./cmd/... ./internal/...
 
-.DEFAULT_GOAL := help
+.PHONY: all clean install tools lint format test build vuln sbom security docs coverage-upload release ci \
+        snapshot run-mds run-brocade help
 
-# ─── build ────────────────────────────────────────────────────────────────────
+all: clean lint test build
 
-.PHONY: build
-build: ## Build binary for current platform
-	CGO_ENABLED=0 $(GO) build -ldflags "$(LDFLAGS)" -o $(BINARY) .
+clean:
+	rm -rf $(DIST) site $(COVER) *.sarif
+	rm -f $(BINARY)
 
-.PHONY: install
-install: ## Install binary to $GOPATH/bin
-	CGO_ENABLED=0 $(GO) install -ldflags "$(LDFLAGS)" $(MODULE)
+install:
+	go mod download
 
-.PHONY: snapshot
+tools:
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_VERSION)
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+	go install github.com/goreleaser/goreleaser/v2@$(GORELEASER_VERSION)
+
+lint:
+	golangci-lint run --timeout=5m $(PKGS)
+
+format:
+	golangci-lint fmt
+
+test:
+	go test -race -coverprofile=$(COVER) -covermode=atomic ./...
+
+build:
+	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o $(BINARY) .
+
+vuln:
+	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+sbom:
+	mkdir -p $(DIST)
+	go run github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest mod -json -output $(DIST)/sbom.cdx.json
+
+security:  # advisory: reports findings but never blocks the build (CodeQL/osv are the blocking gates)
+	uvx semgrep scan --config auto --skip-unknown-extensions || true
+
+docs:
+	uvx --with mkdocs-material --with pymdown-extensions mkdocs build --strict --site-dir site
+
+coverage-upload:
+	uvx --from codecov-cli codecov upload-process --file $(COVER) || true
+
+release:
+	goreleaser release --clean
+
+ci: lint test build vuln
+
+# ---------------------------------------------------------------------------
+# Convenience targets (preserved from original Makefile)
+# ---------------------------------------------------------------------------
+
 snapshot: ## Build cross-platform snapshot binaries (no publish)
-	$(GORELEASER) release --snapshot --clean
+	goreleaser release --snapshot --clean
 
-.PHONY: release
-release: ## Cut a release via goreleaser (requires GITHUB_TOKEN)
-	$(GORELEASER) release --clean
-
-# ─── test & quality ───────────────────────────────────────────────────────────
-
-.PHONY: test
-test: ## Run all tests
-	$(GO) test ./...
-
-.PHONY: test-v
-test-v: ## Run all tests with verbose output
-	$(GO) test -v ./...
-
-.PHONY: test-race
-test-race: ## Run tests with race detector
-	$(GO) test -race ./...
-
-.PHONY: cover
-cover: ## Run tests and show coverage report
-	$(GO) test -coverprofile=coverage.out ./...
-	$(GO) tool cover -html=coverage.out
-
-.PHONY: lint
-lint: ## Run golangci-lint on project packages
-	$(GOLINT) run $(PKGS)
-
-.PHONY: fmt
-fmt: ## Format source with gofmt
-	$(GO) fmt ./...
-
-.PHONY: vet
-vet: ## Run go vet
-	$(GO) vet ./...
-
-.PHONY: check
-check: fmt vet lint test ## Run all quality checks (fmt + vet + lint + test)
-
-# ─── dev helpers ──────────────────────────────────────────────────────────────
-
-.PHONY: run-mds
 run-mds: build ## Run mds2brocade conversion (INPUT= required)
 	@test -n "$(INPUT)" || (echo "Usage: make run-mds INPUT=path/to/mds.cfg [OUTPUT=out.fos]" && exit 1)
 	./$(BINARY) mds2brocade $(INPUT) $(if $(OUTPUT),--output $(OUTPUT)) $(if $(SCRIPT),--script $(SCRIPT))
 
-.PHONY: run-brocade
 run-brocade: build ## Run brocade2mds conversion (INPUT= required)
 	@test -n "$(INPUT)" || (echo "Usage: make run-brocade INPUT=path/to/brocade.cfg [OUTPUT=out.mds]" && exit 1)
 	./$(BINARY) brocade2mds $(INPUT) $(if $(OUTPUT),--output $(OUTPUT))
 
-# ─── clean ────────────────────────────────────────────────────────────────────
-
-.PHONY: clean
-clean: ## Remove built binary and dist/
-	rm -f $(BINARY)
-	rm -rf $(BUILD_DIR) coverage.out
-
-# ─── help ─────────────────────────────────────────────────────────────────────
-
-.PHONY: help
-help: ## Show this help
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage: make \033[36m<target>\033[0m\n\nTargets:\n"} \
-	/^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+help:
+	@echo "Usage: make [target]"

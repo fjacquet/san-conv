@@ -2,6 +2,8 @@
 san-conv
 san-conv.exe
 dist/
+coverage.out
+*.sarif
 
 # IDE
 .vscode/
