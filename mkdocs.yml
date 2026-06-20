@@ -73,3 +73,6 @@ nav:
       - adr/0010-peerzone-roundtrip.md
       - adr/0011-brocade-flat-to-mds-smart.md
   - Changelog: changelog.md
+
+extra:
+  version: v1.3.1
