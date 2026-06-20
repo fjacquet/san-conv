@@ -9,6 +9,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/fjacquet/san-conv.svg)](https://pkg.go.dev/github.com/fjacquet/san-conv)
 [![Documentation](https://img.shields.io/badge/docs-online-blue)](https://fjacquet.github.io/san-conv/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/github/license/fjacquet/san-conv)](https://github.com/fjacquet/san-conv/blob/HEAD/LICENSE)
 
 Convert SAN fabric zoning configurations between Cisco MDS (NX-OS) and Brocade FOS formats.
 
