@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.5] - 2026-09-13
+
+### Security
+
+- `google.golang.org/grpc` 1.82.1 -> 1.83.2, fixing **GHSA-vp52-pcj8-j9qc** and
+  **GHSA-2v4p-qf9q-27wj** (HIGH).
+- `golang.org/x/crypto` 0.53.0 -> 0.56.0, fixing **GO-2026-6354** and **GO-2026-6355**
+  (reachable via `ssh.NewClientConn`).
+- `software.sslmate.com/src/go-pkcs12` 0.7.1 -> 0.7.2, fixing **GHSA-mpwr-8vm7-h73f**
+  (MODERATE).
+- `mkdocs-material` 9.7.6 -> 9.7.7 in `requirements-docs.txt`, fixing
+  **GHSA-xvg9-69gf-fjrf** (MEDIUM).
+
 ## [1.3.0] - 2026-05-27
 
 ### Added
