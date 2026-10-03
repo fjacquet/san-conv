@@ -11,7 +11,7 @@ convert cleanly. Conversion is bidirectional.
 
 Download a prebuilt binary from the
 [latest release](https://github.com/fjacquet/san-conv/releases/latest), or build from
-source (requires Go 1.21+):
+source (requires Go 1.27.1+):
 
 ```bash
 go install github.com/fjacquet/san-conv@latest
