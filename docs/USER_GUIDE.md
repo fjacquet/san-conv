@@ -8,7 +8,7 @@
 
 ## Installation
 
-### Option 1 — Go install (requires Go 1.21+)
+### Option 1 — Go install (requires Go 1.27.1+)
 
 ```bash
 go install github.com/fjacquet/san-conv@latest
