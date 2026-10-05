@@ -18,9 +18,11 @@ Use a compiler pipeline architecture:
 
 ```
 Input file
+  → Preprocess (strip pager prompts / ANSI escapes)
   → Parser (format-specific)
   → ZoningConfig IR (format-neutral struct)
-  → Validator/Sanitizer
+  → Consolidator (opt-in, ADR-0009/0011)
+  → Validator/Sanitizer (+ hygiene warnings)
   → Emitter (format-specific)
   → Output
 ```
@@ -30,6 +32,7 @@ Each stage is independently testable. The IR is the contract between parsers and
 ## IR Definition
 
 ```go
+// Abridged: see internal/ir/zoningconfig.go (ZoneMember also carries a smart-zoning Role, ADR-0008).
 type ZoningConfig struct {
     Aliases     map[string]*Alias
     Zones       map[string]*Zone
@@ -43,7 +46,7 @@ Map keys: MDS uses composite `"name@vsanN"` keys; Brocade uses plain name keys. 
 
 ## Rationale
 
-- **Independent testability**: Each of the 6 packages (`parser/mds`, `parser/brocade`, `validator`, `emitter/brocade`, `emitter/mds`, `converter`) has its own table-driven tests.
+- **Independent testability**: Each package (`preprocess`, `parser/mds`, `parser/brocade`, `consolidator`, `hygiene`, `validator`, `emitter/brocade`, `emitter/mds`, `converter`) has its own table-driven tests.
 - **Bidirectional symmetry**: The same IR struct is produced by both parsers and consumed by both emitters — no duplication.
 - **Two-pass parser support**: The IR accumulates all aliases in pass 1 before zone members are resolved in pass 2.
 - **Cross-reference safety**: Sanitizer walks the complete IR and updates all cross-references atomically before emitters run.

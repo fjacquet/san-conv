@@ -28,6 +28,6 @@ Implement in Go. Produce a single statically-linked binary per platform using `G
 
 ## Consequences
 
-- Go 1.21+ required in CI (for `log/slog`); go.mod pins minimum version
+- `go.mod` pins Go 1.27.1 (`log/slog` itself needs only 1.21+)
 - Dev toolchain (golangci-lint, goreleaser) managed via `go tool` directive (Go 1.24+)
-- Binary size ~6MB stripped; acceptable for a CLI tool
+- Binary size is a few MB; acceptable for a CLI tool

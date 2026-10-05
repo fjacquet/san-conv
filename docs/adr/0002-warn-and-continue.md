@@ -1,7 +1,7 @@
 # ADR-0002: Warn and continue on non-fatal errors
 
 **Date:** 2026-03-28
-**Status:** Accepted
+**Status:** Accepted (smart-zoning keywords are no longer skipped — amended by ADR-0008)
 
 ## Context
 
