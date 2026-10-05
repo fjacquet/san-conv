@@ -55,6 +55,11 @@ san-conv brocade2mds cfgshow.txt
 | `--output` | stdout | Write primary output to file |
 | `--script` | (disabled) | Also write an executable shell script (mds2brocade only) |
 | `--fos-version` | `8.1+` | FOS naming rules: `8.1+` (default, preserves hyphens) or `pre-8.1` (legacy switches only) |
+| `--vsan` | `0` | Convert a single VSAN; `0` merges all VSANs into one fabric (mds2brocade) |
+| `--peer-consolidate` | false | Collapse flat single-initiator/single-target zones into per-target Brocade peer zones (mds2brocade) |
+| `--smart-consolidate` | false | Collapse flat zones into per-target MDS smart zones (brocade2mds) |
+| `--consolidate-report` | (disabled) | Write the consolidation report to a file |
+| `--consolidate-strict` | false | Require an exact `<host>_<target>` zone name when consolidating |
 
 ## Input formats
 
