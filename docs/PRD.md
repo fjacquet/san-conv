@@ -87,7 +87,7 @@ SAN fabric migrations from Cisco MDS (NX-OS) to Brocade FOS require manually tra
 | CLI-02 | `--direction` flag: `mds2brocade` (default) or `brocade2mds` | ✅ Complete |
 | CLI-03 | `--output` flag: write primary output to file instead of stdout | ✅ Complete |
 | CLI-04 | `--script` flag: also write executable shell script | ✅ Complete |
-| CLI-05 | `--fos-version` flag: `pre-8.1` (default) or `8.1+` | ✅ Complete |
+| CLI-05 | `--fos-version` flag: `8.1+` (default) or `pre-8.1` | ✅ Complete |
 | CLI-06 | Exit 0 on success (warnings allowed); non-zero on fatal IO/parse errors | ✅ Complete |
 | CLI-07 | Single distributable Go binary; no runtime dependencies | ✅ Complete |
 
@@ -99,7 +99,6 @@ SAN fabric migrations from Cisco MDS (NX-OS) to Brocade FOS require manually tra
 | VAL-02 | Validate output against target platform naming rules before writing | Medium |
 | VAL-03 | `--dry-run` flag: validate without writing output | Low |
 | ADV-01 | Accept Brocade `configupload` full backup format | Medium |
-| ADV-02 | `--vsan` flag: convert a single named VSAN | Low |
 | INT-01 | Read from stdin (piped config data) | Low |
 | INT-02 | Structured JSON output for machine-readable consumption | Low |
 
@@ -112,7 +111,7 @@ SAN fabric migrations from Cisco MDS (NX-OS) to Brocade FOS require manually tra
 | VSAN topology mapping | Requires network knowledge beyond the config file |
 | Zone enforcement mode (hard/soft) | FOS and NX-OS semantics differ in ways that can't be auto-translated |
 | IVR zones | Inter-VSAN Routing has no FOS equivalent; skip with warning |
-| Smart zoning keywords (init/target/both) | No FOS equivalent; strip keyword, preserve pWWN with warning |
+| Smart zoning keywords (init/target/both) | Converted to Brocade peer zones; see ADR-0008 |
 | TI (Traffic Isolation) zones | Deprecated in modern NX-OS; skip with warning |
 
 ## Constraints
@@ -132,4 +131,4 @@ SAN fabric migrations from Cisco MDS (NX-OS) to Brocade FOS require manually tra
 - Ops engineer can install with `go install github.com/fjacquet/san-conv@latest` in one command
 
 ---
-*PRD owner: fjacquet — Last updated 2026-03-29*
+*PRD owner: fjacquet — Last updated 2026-10-05*

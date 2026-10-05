@@ -29,7 +29,7 @@ The MDS parser uses a two-pass approach:
 
 ## Consequences
 
-- The parser reads the input twice using `bufio.Scanner` on a `strings.Reader` (file content buffered to string in pass 1).
+- `preprocess.Clean` reads the input once into a cleaned line slice; both passes iterate that slice.
 - Memory: the full file is held in memory during parsing. For typical configs (< 5MB), this is not a concern.
 - `member pwwn` entries are resolved immediately in pass 2 without lookup.
 - `member interface`, `member fcid`, `member ip-address`: emits an unsupported-type warning and skips the member.

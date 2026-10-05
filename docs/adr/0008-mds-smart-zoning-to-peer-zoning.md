@@ -91,7 +91,7 @@ are converted, not skipped.
 - `validator` (the sanitizer) and `converter.Run` are unchanged.
 - `brocade2mds` is unaffected: the Brocade parser sets `Role == ""` for all
   members; parsing `zonecreate --peerzone` back into MDS smart zoning is a
-  separate concern (deferred — see ADR for Group B2).
+  separate concern (deferred at the time; resolved in ADR-0010).
 - Flat-zone *consolidation* (inferring target vs initiator to collapse existing
   single-initiator/single-target zones into per-target peer zones) is **not**
   part of this decision — it is Group B2 and will have its own ADR, because the
