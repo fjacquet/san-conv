@@ -22,7 +22,7 @@ A Go CLI tool that converts SAN fabric zoning configurations between Cisco MDS (
 ### Core Technologies
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| Go | 1.27.x (current: 1.27.1) | Language runtime | Stated project constraint. Single-binary compilation with `GOOS`/`GOARCH` cross-compilation. No runtime dependencies for ops team distribution. Go 1.24+ added `tool` directive in `go.mod`, simplifying dev toolchain management without `tools.go` hacks. |
+| Go | 1.27.x (current: 1.27.2) | Language runtime | Stated project constraint. Single-binary compilation with `GOOS`/`GOARCH` cross-compilation. No runtime dependencies for ops team distribution. Go 1.24+ added `tool` directive in `go.mod`, simplifying dev toolchain management without `tools.go` hacks. |
 | github.com/spf13/cobra | v1.10.2 | CLI framework — subcommands, flags, help | Industry standard for non-trivial Go CLIs. Used by Kubernetes, Hugo, GitHub CLI. Provides nested subcommands (`mds2brocade`, `brocade2mds`), POSIX flag parsing, automatic `--help` generation, and shell autocomplete. Far more structured than `flag` stdlib for a tool with multiple commands and flags. |
 | stdlib `bufio` + `regexp` | stdlib (Go 1.25) | Line-by-line config file parsing | NX-OS and FOS configs are custom indentation-structured text — not YAML/TOML/JSON. No third-party grammar parser fits. `bufio.Scanner` reads line-by-line with buffering; `regexp.MustCompile` matches constructs like `device-alias database`, `zone name`, `zoneset activate`. This is the canonical Go approach for vendor CLI config parsing. |
 | stdlib `text/template` | stdlib (Go 1.25) | Brocade FOS CLI command output generation | Generates `alicreate`, `zonecreate`, `cfgcreate`, `cfgenable` command blocks from structured internal data. Template-driven output keeps conversion logic separate from formatting, making it trivial to add new output modes (e.g., a script header) without touching converter code. |
@@ -35,7 +35,7 @@ A Go CLI tool that converts SAN fabric zoning configurations between Cisco MDS (
 ### Development Tools
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| golangci-lint | v2.13.2 | Static analysis and linting | Use `linters.default: standard` in `.golangci.yml` (v2 config format). Do not enable all linters — start with `standard` preset and add `errcheck`, `govet`, `staticcheck`. Run via `go tool golangci-lint run` using Go 1.24+ tool directive. |
+| golangci-lint | v2.14.0 | Static analysis and linting | Use `linters.default: standard` in `.golangci.yml` (v2 config format). Do not enable all linters — start with `standard` preset and add `errcheck`, `govet`, `staticcheck`. Run via `go tool golangci-lint run` using Go 1.24+ tool directive. |
 | goreleaser | v2.18.0 | Cross-platform binary release (linux/amd64, darwin/arm64, windows/amd64) | Single `.goreleaser.yml`. Produces GitHub release artifacts + checksums. Ops team installs via `go install` (dev) or downloads pre-built binary (no Go required). |
 | cobra-cli | (latest, track via `go tool`) | Scaffolding new cobra commands | Use `go tool cobra-cli add <command>` to scaffold consistent command files. Not a runtime dep. Add via `go get -tool github.com/spf13/cobra-cli`. |
 ## Installation
