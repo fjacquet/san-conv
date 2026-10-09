@@ -2,7 +2,7 @@
 .DEFAULT_GOAL := all
 DIST  ?= dist
 COVER ?= coverage.out
-GOLANGCI_VERSION ?= v2.13.2
+GOLANGCI_VERSION ?= v2.14.0
 GORELEASER_VERSION ?= v2.18.0
 
 BINARY := san-conv
