@@ -368,4 +368,4 @@ san-conv brocade2mds myconfig.txt
 7. **Verify** with `cfgshow` on the Brocade switch post-apply
 
 ---
-*Last updated: 2026-10-05 — san-conv v1.3.6*
+*Last updated: 2026-10-24 — san-conv v1.3.7*
