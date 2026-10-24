@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.7] - 2026-10-24
+
+### Security
+
+- Go 1.27.1 -> 1.27.2 for GO-2026-6603, GO-2026-6605, GO-2026-6607, GO-2026-6608, GO-2026-6610,
+  GO-2026-6611, GO-2026-6613 and GO-2026-6617; `golang.org/x/net` to v0.60.0+ (PR #28).
+- go.mod `tool` pins synced with the Makefile: goreleaser v2.16.0 -> v2.18.0, golangci-lint
+  v2.12.2 -> v2.14.0. This moves `github.com/klauspost/compress` to 1.19.2 (GHSA-259r-337f-4rfw).
+  These are build tools only: none of them is linked into the `san-conv` binary.
+- Still open, tool-only and without a fix: `golang.org/x/crypto` openpgp (GO-2026-5932) and
+  `docker-credential-acr-env` (GO-2026-6225), both reached only through goreleaser.
+
+### Changed
+
+- testify 1.11.1 -> 1.12.1.
+
 ## [1.3.6] - 2026-10-03
 
 ### Security
